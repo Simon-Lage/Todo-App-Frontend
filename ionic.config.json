@@ -1,0 +1,7 @@
+{
+  "name": "Todo-App-Frontend",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react-vite"
+}
