@@ -1,41 +1,18 @@
 import { ComponentType, lazy } from "react";
-
-export type RouteComponent = ComponentType<any>;
-
-export type RouteDefinition = {
-  route: string;
-  pageComponent?: RouteComponent;
-  layout?: RouteComponent;
-  onAccessRedirectTo?: string;
-  pages?: RouteDefinition[];
-  protectionRules?: Record<string, unknown>;
-  mutations?: Array<{
-    method: string;
-    path: string;
-  }>;
-};
-
 const AuthLayout = lazy(() => import('./layouts/AuthLayout'));
 const AppShellLayout = lazy(() => import('./layouts/AppShellLayout'));
 const LoginPage = lazy(() => import('./pages/Auth/LoginPage'));
-const RegisterPage = lazy(() => import('./pages/Auth/RegisterPage'));
 const ResetPasswordFlowPage = lazy(() => import('./pages/Auth/ResetPassword/ResetPasswordFlowPage'));
 const ResetPasswordRequestPage = lazy(() => import('./pages/Auth/ResetPassword/ResetPasswordRequestPage'));
 const ResetPasswordVerifyEmailPage = lazy(() => import('./pages/Auth/ResetPassword/ResetPasswordVerifyEmailPage'));
 const ResetPasswordConfirmPage = lazy(() => import('./pages/Auth/ResetPassword/ResetPasswordConfirmPage'));
-const AppRootPage = lazy(() => import('./pages/App/AppRootPage'));
 const DashboardPage = lazy(() => import('./pages/App/Dashboard/DashboardPage'));
 const TaskOverviewPage = lazy(() => import('./pages/App/Tasks/TaskOverviewPage'));
 const TaskMyListPage = lazy(() => import('./pages/App/Tasks/TaskMyListPage'));
 const TaskAllListPage = lazy(() => import('./pages/App/Tasks/TaskAllListPage'));
 const TaskCreatePage = lazy(() => import('./pages/App/Tasks/TaskCreatePage'));
 const TaskDetailsPage = lazy(() => import('./pages/App/Tasks/TaskDetailsPage'));
-const TaskEditPage = lazy(() => import('./pages/App/Tasks/TaskEditPage'));
-const TaskAssignUserPage = lazy(() => import('./pages/App/Tasks/TaskAssignUserPage'));
-const TaskMoveToProjectPage = lazy(() => import('./pages/App/Tasks/TaskMoveToProjectPage'));
 const TaskImagesPage = lazy(() => import('./pages/App/Tasks/TaskImagesPage'));
-const TaskUnassignUserPage = lazy(() => import('./pages/App/Tasks/TaskUnassignUserPage'));
-const TaskDeletePage = lazy(() => import('./pages/App/Tasks/TaskDeletePage'));
 const ProjectOverviewPage = lazy(() => import('./pages/App/Projects/ProjectOverviewPage'));
 const ProjectListPage = lazy(() => import('./pages/App/Projects/ProjectListPage'));
 const ProjectCreatePage = lazy(() => import('./pages/App/Projects/ProjectCreatePage'));
@@ -71,6 +48,21 @@ const Error403Page = lazy(() => import('./pages/App/Errors/Error403Page'));
 const Error404Page = lazy(() => import('./pages/App/Errors/Error404Page'));
 const Error500Page = lazy(() => import('./pages/App/Errors/Error500Page'));
 
+export type RouteComponent = ComponentType<never>;
+
+export type RouteDefinition = {
+  route: string;
+  pageComponent?: RouteComponent;
+  layout?: RouteComponent;
+  onAccessRedirectTo?: string;
+  pages?: RouteDefinition[];
+  protectionRules?: Record<string, unknown>;
+  mutations?: Array<{
+    method: string;
+    path: string;
+  }>;
+};
+
 const routes: RouteDefinition[] = [
   {
     "route": "/",
@@ -97,10 +89,6 @@ const routes: RouteDefinition[] = [
             "pageComponent": LoginPage,
           },
           {
-            "route": "/register",
-            "pageComponent": RegisterPage,
-          },
-          {
             "route": "/reset-password",
             "pageComponent": ResetPasswordFlowPage,
             "onAccessRedirectTo": "/auth/reset-password/request",
@@ -124,7 +112,7 @@ const routes: RouteDefinition[] = [
       {
         "route": "app",
         "layout": AppShellLayout,
-        "pageComponent": AppRootPage,
+        "onAccessRedirectTo": "/app/dashboard",
         "protectionRules": {
           "userPermissionsRequired": {
             "or": [],
@@ -151,7 +139,6 @@ const routes: RouteDefinition[] = [
               {
                 "route": "/my",
                 "pageComponent": TaskMyListPage,
-                
               },
               {
                 "route": "/all",
@@ -165,7 +152,6 @@ const routes: RouteDefinition[] = [
                   },
                   "ifAccessDeniedRedirectTo": "/app/tasks/my"
                 },
-                
               },
               {
                 "route": "/create",
@@ -179,95 +165,15 @@ const routes: RouteDefinition[] = [
                   },
                   "ifAccessDeniedRedirectTo": "/app/tasks/my"
                 },
-                
-
               },
               {
                 "route": "/:taskId",
                 "pageComponent": TaskDetailsPage,
-
-
                 "pages": [
-                  {
-                    "route": "/edit",
-                    "pageComponent": TaskEditPage,
-                    "protectionRules": {
-                      "userPermissionsRequired": {
-                        "or": [],
-                        "and": [
-                          "perm_can_edit_tasks"
-                        ]
-                      },
-                      "ifAccessDeniedRedirectTo": "/app/tasks/:taskId"
-                    },
-
-
-                  },
-                  {
-                    "route": "/assign-user",
-                    "pageComponent": TaskAssignUserPage,
-                    "protectionRules": {
-                      "userPermissionsRequired": {
-                        "or": [
-                          "perm_can_assign_tasks_to_user"
-                        ],
-                        "and": []
-                      },
-                      "ifAccessDeniedRedirectTo": "/app/tasks/:taskId"
-                    },
-
-
-                  },
-                  {
-                    "route": "/move-to-project",
-                    "pageComponent": TaskMoveToProjectPage,
-                    "protectionRules": {
-                      "userPermissionsRequired": {
-                        "or": [
-                          "perm_can_assign_tasks_to_project"
-                        ],
-                        "and": []
-                      },
-                      "ifAccessDeniedRedirectTo": "/app/tasks/:taskId"
-                    },
-
-
-                  },
                   {
                     "route": "/images",
                     "pageComponent": TaskImagesPage,
-
-
                   },
-                  {
-                    "route": "/unassign-user",
-                    "pageComponent": TaskUnassignUserPage,
-                    "protectionRules": {
-                      "userPermissionsRequired": {
-                        "or": [
-                          "perm_can_assign_tasks_to_user"
-                        ],
-                        "and": []
-                      },
-                      "ifAccessDeniedRedirectTo": "/app/tasks/:taskId"
-                    },
-
-
-                  },
-                  {
-                    "route": "/delete",
-                    "pageComponent": TaskDeletePage,
-                    "protectionRules": {
-                      "userPermissionsRequired": {
-                        "or": [],
-                        "and": [
-                          "perm_can_delete_tasks"
-                        ]
-                      },
-                      "ifAccessDeniedRedirectTo": "/app/tasks/:taskId"
-                    },
-
-                  }
                 ]
               }
             ]
@@ -302,13 +208,10 @@ const routes: RouteDefinition[] = [
                   },
                   "ifAccessDeniedRedirectTo": "/app/projects/list"
                 },
-
-
               },
               {
                 "route": "/:projectId",
                 "pageComponent": ProjectDetailsPage,
-
                 "pages": [
                   {
                     "route": "/edit",
@@ -322,8 +225,6 @@ const routes: RouteDefinition[] = [
                       },
                       "ifAccessDeniedRedirectTo": "/app/projects/:projectId"
                     },
-
-
                   },
                   {
                     "route": "/delete",
@@ -337,17 +238,23 @@ const routes: RouteDefinition[] = [
                       },
                       "ifAccessDeniedRedirectTo": "/app/projects/:projectId"
                     },
-
                   },
                   {
                     "route": "/team",
                     "pageComponent": ProjectTeamPage,
-
+                    "protectionRules": {
+                      "userPermissionsRequired": {
+                        "or": [],
+                        "and": [
+                          "perm_can_read_user"
+                        ]
+                      },
+                      "ifAccessDeniedRedirectTo": "/app/projects/list"
+                    }
                   },
                   {
                     "route": "/tasks",
                     "pageComponent": ProjectTasksPage,
-
                     "pages": [
                       {
                         "route": "/create",
@@ -361,16 +268,12 @@ const routes: RouteDefinition[] = [
                           },
                           "ifAccessDeniedRedirectTo": "/app/projects/:projectId/tasks"
                         },
-
-
                       }
                     ]
                   },
                   {
                     "route": "/images",
                     "pageComponent": ProjectImagesPage,
-
-
                   }
                 ]
               }
@@ -379,7 +282,18 @@ const routes: RouteDefinition[] = [
           {
             "route": "/search",
             "pageComponent": GlobalSearchPage,
-
+            "protectionRules": {
+              "userPermissionsRequired": {
+                "or": [
+                  "perm_can_read_user",
+                  "perm_can_read_projects",
+                  "perm_can_read_all_tasks",
+                  "perm_can_read_roles"
+                ],
+                "and": []
+              },
+              "ifAccessDeniedRedirectTo": "/app/dashboard"
+            }
           },
           {
             "route": "/account",
@@ -408,18 +322,10 @@ const routes: RouteDefinition[] = [
             "onAccessRedirectTo": "/app/admin/users",
             "protectionRules": {
               "userPermissionsRequired": {
-                "or": [
-                  "perm_can_read_user",
-                  "perm_can_edit_user",
-                  "perm_can_delete_user",
-                  "perm_can_create_user",
-                  "perm_can_create_user",
-                  "perm_can_assign_tasks_to_user",
-                  "perm_can_assign_tasks_to_project",
-                  "perm_can_edit_projects",
-                  "perm_can_delete_projects"
-                ],
-                "and": []
+                "or": [],
+                "and": [
+                  "perm_can_read_user"
+                ]
               },
               "ifAccessDeniedRedirectTo": "/app/dashboard"
             },
@@ -427,7 +333,6 @@ const routes: RouteDefinition[] = [
               {
                 "route": "/users",
                 "pageComponent": AdminUserListPage,
-
                 "pages": [
                   {
                     "route": "/create",
@@ -435,7 +340,6 @@ const routes: RouteDefinition[] = [
                     "protectionRules": {
                       "userPermissionsRequired": {
                         "or": [
-                          "perm_can_create_user",
                           "perm_can_create_user"
                         ],
                         "and": []
@@ -446,7 +350,6 @@ const routes: RouteDefinition[] = [
                   {
                     "route": "/:userId",
                     "pageComponent": AdminUserDetailsPage,
-
                     "pages": [
                       {
                         "route": "/edit",
@@ -460,8 +363,6 @@ const routes: RouteDefinition[] = [
                           },
                           "ifAccessDeniedRedirectTo": "/app/admin/users/:userId"
                         },
-
-
                       },
                       {
                         "route": "/status",
@@ -474,8 +375,6 @@ const routes: RouteDefinition[] = [
                             ]
                           }
                         },
-
-
                       },
                       {
                         "route": "/roles",
@@ -484,12 +383,10 @@ const routes: RouteDefinition[] = [
                           "userPermissionsRequired": {
                             "or": [],
                             "and": [
-                              "perm_can_edit_user"
+                              "perm_can_edit_roles"
                             ]
                           }
                         },
-
-
                       }
                     ]
                   }
@@ -498,7 +395,15 @@ const routes: RouteDefinition[] = [
               {
                 "route": "/roles",
                 "pageComponent": AdminRoleListPage,
-
+                "protectionRules": {
+                  "userPermissionsRequired": {
+                    "or": [],
+                    "and": [
+                      "perm_can_read_roles"
+                    ]
+                  },
+                  "ifAccessDeniedRedirectTo": "/app/admin"
+                },
                 "pages": [
                   {
                     "route": "/create",
@@ -507,18 +412,15 @@ const routes: RouteDefinition[] = [
                       "userPermissionsRequired": {
                         "or": [],
                         "and": [
-                          "perm_can_edit_user"
+                          "perm_can_create_roles"
                         ]
                       },
                       "ifAccessDeniedRedirectTo": "/app/admin/roles"
                     },
-
-
                   },
                   {
                     "route": "/:roleId",
                     "pageComponent": AdminRoleDetailsPage,
-
                     "pages": [
                       {
                         "route": "/edit",
@@ -527,12 +429,10 @@ const routes: RouteDefinition[] = [
                           "userPermissionsRequired": {
                             "or": [],
                             "and": [
-                              "perm_can_edit_user"
+                              "perm_can_edit_roles"
                             ]
                           }
                         },
-
-
                       },
                       {
                         "route": "/delete",
@@ -541,11 +441,10 @@ const routes: RouteDefinition[] = [
                           "userPermissionsRequired": {
                             "or": [],
                             "and": [
-                              "perm_can_delete_user"
+                              "perm_can_delete_roles"
                             ]
                           }
                         },
-
                       }
                     ]
                   }
@@ -556,15 +455,13 @@ const routes: RouteDefinition[] = [
                 "pageComponent": AdminLogsPage,
                 "protectionRules": {
                   "userPermissionsRequired": {
-                    "or": [
-                      "perm_can_edit_user",
-                      "perm_can_delete_user"
-                    ],
-                    "and": []
+                    "or": [],
+                    "and": [
+                      "perm_can_read_user"
+                    ]
                   },
                   "ifAccessDeniedRedirectTo": "/app/admin"
                 },
-                
                 "pages": [
                   {
                     "route": "/:logId",
@@ -581,7 +478,6 @@ const routes: RouteDefinition[] = [
             
           }
         ],
-        
       },
       {
         "route": "error",
