@@ -289,7 +289,6 @@ const routes: RouteDefinition[] = [
               {
                 "route": "/list",
                 "pageComponent": ProjectListPage,
-
               },
               {
                 "route": "/create",
@@ -390,14 +389,10 @@ const routes: RouteDefinition[] = [
               {
                 "route": "/profile",
                 "pageComponent": AccountProfilePage,
-
-
               },
               {
                 "route": "/security",
                 "pageComponent": AccountSecurityPage,
-
-
               },
               {
                 "route": "/logout",
@@ -418,7 +413,7 @@ const routes: RouteDefinition[] = [
                   "perm_can_edit_user",
                   "perm_can_delete_user",
                   "perm_can_create_user",
-                  "perm_can_crate_user",
+                  "perm_can_create_user",
                   "perm_can_assign_tasks_to_user",
                   "perm_can_assign_tasks_to_project",
                   "perm_can_edit_projects",
@@ -441,14 +436,12 @@ const routes: RouteDefinition[] = [
                       "userPermissionsRequired": {
                         "or": [
                           "perm_can_create_user",
-                          "perm_can_crate_user"
+                          "perm_can_create_user"
                         ],
                         "and": []
                       },
                       "ifAccessDeniedRedirectTo": "/app/admin/users"
                     },
-
-
                   },
                   {
                     "route": "/:userId",
