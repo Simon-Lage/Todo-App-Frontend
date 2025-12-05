@@ -73,9 +73,24 @@ ion-header ion-toolbar {
 }
 
 .app-footer-nav-btn::part(native) {
+  display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 4px;
+}
+
+.app-footer-nav-btn .button-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.app-footer-nav-btn > span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 4px;
 }
 
