@@ -187,8 +187,10 @@ const AppShellLayout: React.FC<AppShellLayoutProps> = ({ children }) => {
                 fill="clear"
                 className={`app-footer-nav-btn ${activeTab === item.key ? 'active' : ''}`}
               >
-                <IonIcon icon={item.icon} />
-                <span>{item.label}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                  <IonIcon icon={item.icon} />
+                  <span>{item.label}</span>
+                </div>
               </IonButton>
             ))}
           </div>

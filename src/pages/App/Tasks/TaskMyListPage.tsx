@@ -45,7 +45,8 @@ const TaskMyListPage: React.FC = () => {
       setLoading(true);
       const { user } = await userService.getCurrentUser();
       const response = await taskService.list({ assigned_to_user_id: user.id }, { limit: 100 });
-      setTasks(response.items);
+      const validUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+      setTasks(response.items.filter((t) => t.id && validUuid.test(t.id)));
     } catch (err) {
       setError('Fehler beim Laden der Aufgaben');
       console.error(err?.message || err);
