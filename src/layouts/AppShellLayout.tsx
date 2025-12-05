@@ -25,6 +25,7 @@ import { useAuthSession } from '../routing/useAuthSession';
 import Menu from '../components/Menu';
 import './AppShellLayout.css';
 import { sessionStore } from '../services/sessionStore';
+import { UserView } from '../types/api';
 
 type AppShellLayoutProps = {
   children?: ReactNode;
@@ -65,7 +66,7 @@ const AppShellLayout: React.FC<AppShellLayoutProps> = ({ children }) => {
   useEffect(() => {
     let revokedUrl: string | null = null;
     const loadAvatar = async () => {
-      const imageId = (user as any)?.profile_image_id;
+      const imageId = (user as UserView)?.profile_image_id;
       if (!imageId) {
         setAvatarUrl(null);
         return;
@@ -167,7 +168,7 @@ const AppShellLayout: React.FC<AppShellLayoutProps> = ({ children }) => {
                     <img src={avatarUrl} alt="Profilbild" />
                   ) : (
                     <div className="avatar-fallback">
-                      {user?.name?.charAt(0).toUpperCase() || '?'}
+                      {(user as UserView)?.name?.charAt(0).toUpperCase() || '?'}
                     </div>
                   )}
                 </IonAvatar>
@@ -187,10 +188,8 @@ const AppShellLayout: React.FC<AppShellLayoutProps> = ({ children }) => {
                 fill="clear"
                 className={`app-footer-nav-btn ${activeTab === item.key ? 'active' : ''}`}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                  <IonIcon icon={item.icon} />
-                  <span>{item.label}</span>
-                </div>
+                <IonIcon icon={item.icon} />
+                <span>{item.label}</span>
               </IonButton>
             ))}
           </div>
