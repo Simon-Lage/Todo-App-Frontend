@@ -1,19 +1,90 @@
-/**
- * Role service expectations.
- *
- * Backend Coverage
- * - `GET /api/role/list` → returns paginated `RoleView` objects (id, name, permissions map).
- * - `GET /api/role/{id}`
- * - `POST /api/role` (payload defined via `/api/info/role` create endpoint: `name`, `permissions` map).
- * - `PATCH /api/role/{id}` (name optional, partial permissions map).
- * - `DELETE /api/role/{id}`
- * - `GET /api/role/by-user/{userId}` to show a user’s current role assignments.
- * - `PATCH /api/role/by-user/{userId}` assign roles (array of role IDs).
- *
- * Responsibilities
- * - Provide typed methods for each API call.
- * - Keep permission maps strongly typed (e.g., `Record<PermissionKey, boolean>`).
- * - Offer helper functions to transform role DTOs into table/list friendly data (name + permission badges).
- * - Integrate with `permissionService` so new role definitions immediately influence route guards.
- */
-export {};
+import { apiClient } from './apiClient';
+import type {
+  RoleView,
+  PaginatedResponse,
+  SingleResponse,
+  PaginationParams,
+  CreateRolePayload,
+  UpdateRolePayload,
+} from '../types/api';
+
+const list = async (pagination: PaginationParams = {}): Promise<PaginatedResponse<RoleView>> => {
+  const params = new URLSearchParams();
+
+  if (pagination.offset !== undefined) params.append('offset', pagination.offset.toString());
+  if (pagination.limit !== undefined) params.append('limit', pagination.limit.toString());
+
+  const query = params.toString();
+  return apiClient.request<PaginatedResponse<RoleView>>({
+    path: `/api/role/list${query ? `?${query}` : ''}`,
+    method: 'GET',
+  });
+};
+
+const getById = async (id: string): Promise<RoleView> => {
+  const response = await apiClient.request<SingleResponse<RoleView>>({
+    path: `/api/role/${id}`,
+    method: 'GET',
+  });
+  return response.data;
+};
+
+const create = async (payload: CreateRolePayload): Promise<RoleView> => {
+  const flattenedPermissions = payload.permissions ? { ...payload.permissions } : {};
+  const response = await apiClient.request<SingleResponse<RoleView>>({
+    path: '/api/role',
+    method: 'POST',
+    body: {
+      name: payload.name,
+      ...flattenedPermissions,
+    },
+  });
+  return response.data;
+};
+
+const update = async (id: string, payload: UpdateRolePayload): Promise<RoleView> => {
+  const flattenedPermissions = payload.permissions ? { ...payload.permissions } : undefined;
+  const response = await apiClient.request<SingleResponse<RoleView>>({
+    path: `/api/role/${id}`,
+    method: 'PATCH',
+    body: {
+      ...(payload.name ? { name: payload.name } : {}),
+      ...(flattenedPermissions ?? {}),
+    },
+  });
+  return response.data;
+};
+
+const deleteRole = async (id: string): Promise<void> => {
+  await apiClient.request({
+    path: `/api/role/${id}`,
+    method: 'DELETE',
+  });
+};
+
+const getByUser = async (userId: string): Promise<RoleView[]> => {
+  const response = await apiClient.request<SingleResponse<{ items: RoleView[]; total: number }>>({
+    path: `/api/role/by-user/${userId}`,
+    method: 'GET',
+  });
+  return response.data.items;
+};
+
+const assignToUser = async (userId: string, roleIds: string[]): Promise<RoleView[]> => {
+  const response = await apiClient.request<SingleResponse<{ user_id: string; roles: RoleView[] }>>({
+    path: `/api/role/by-user/${userId}`,
+    method: 'PATCH',
+    body: { roles: roleIds },
+  });
+  return response.data.roles;
+};
+
+export const roleService = {
+  list,
+  getById,
+  create,
+  update,
+  delete: deleteRole,
+  getByUser,
+  assignToUser,
+};

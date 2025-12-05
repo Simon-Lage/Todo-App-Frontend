@@ -3,6 +3,7 @@ import { IonApp, IonRouterOutlet, IonSplitPane, setupIonicReact } from '@ionic/r
 import { IonReactRouter } from '@ionic/react-router';
 import Menu from './components/Menu';
 import AppRoutes from './routing/AppRoutes';
+import { AuthSessionProvider } from './routing/useAuthSession';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -27,27 +28,23 @@ import '@ionic/react/css/display.css';
  * https://ionicframework.com/docs/theming/dark-mode
  */
 
-/* import '@ionic/react/css/palettes/dark.always.css'; */
-/* import '@ionic/react/css/palettes/dark.class.css'; */
 import '@ionic/react/css/palettes/dark.system.css';
 
 /* Theme variables */
 import './theme/variables.css';
+import './theme/app-pages.css';
 
 setupIonicReact();
 
 const App: React.FC = () => {
   return (
-    <IonApp>
-      <IonReactRouter>
-        <IonSplitPane contentId="main">
-          <Menu />
-          <IonRouterOutlet id="main">
-            <AppRoutes />
-          </IonRouterOutlet>
-        </IonSplitPane>
-      </IonReactRouter>
-    </IonApp>
+    <AuthSessionProvider>
+      <IonApp>
+        <IonReactRouter>
+          <AppRoutes />
+        </IonReactRouter>
+      </IonApp>
+    </AuthSessionProvider>
   );
 };
 

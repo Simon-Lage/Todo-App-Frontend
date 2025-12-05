@@ -1,20 +1,68 @@
-/**
- * Permission service outline.
- *
- * API touchpoints
- * - `GET /api/permission/catalog` → returns `{ items: PermissionKey[], roles: string[] }`.
- * - `GET /api/user/permissions` → returns resolved boolean map for the authenticated user.
- *
- * Responsibilities
- * - Cache the catalog + assigned roles (needed for route guards and feature flags).
- * - Provide helper functions:
- *   - `has(permission: PermissionKey)` / `hasAll([...])` / `hasAny([...])`.
- *   - `resolve()` to expose the full permission map to components.
- *   - `getAssignedRoles()` for UI labels.
- * - Integrate with `apiClient` interceptors to update permission cache after login/logout.
- *
- * Implementation Guidance
- * - Keep the permission keys in sync with `PermissionRegistry::MAP` from the backend.
- * - Safely handle unknown permissions (throw or log) so misconfigurations are visible during dev.
- */
-export {};
+import { apiClient } from './apiClient';
+import type { PermissionMap, PermissionKey, SingleResponse } from '../types/api';
+
+let cachedPermissions: PermissionMap | null = null;
+let cachedCatalog: { items: PermissionKey[]; roles: string[] } | null = null;
+
+const getCatalog = async (): Promise<{ items: PermissionKey[]; roles: string[] }> => {
+  if (cachedCatalog) {
+    return cachedCatalog;
+  }
+
+  const response = await apiClient.request<SingleResponse<{ items: PermissionKey[]; roles: string[] }>>({
+    path: '/api/permission/catalog',
+    method: 'GET',
+  });
+
+  cachedCatalog = response.data;
+  return response.data;
+};
+
+const resolve = async (): Promise<PermissionMap> => {
+  if (cachedPermissions) {
+    return cachedPermissions;
+  }
+
+  const response = await apiClient.request<SingleResponse<PermissionMap>>({
+    path: '/api/user/permissions',
+    method: 'GET',
+  });
+
+  cachedPermissions = response.data;
+  return response.data;
+};
+
+const has = async (permission: PermissionKey): Promise<boolean> => {
+  const permissions = await resolve();
+  return permissions[permission] === true;
+};
+
+const hasAll = async (permissions: PermissionKey[]): Promise<boolean> => {
+  const permissionMap = await resolve();
+  return permissions.every((perm) => permissionMap[perm] === true);
+};
+
+const hasAny = async (permissions: PermissionKey[]): Promise<boolean> => {
+  const permissionMap = await resolve();
+  return permissions.some((perm) => permissionMap[perm] === true);
+};
+
+const getAssignedRoles = async (): Promise<string[]> => {
+  const catalog = await getCatalog();
+  return catalog.roles;
+};
+
+const clearCache = (): void => {
+  cachedPermissions = null;
+  cachedCatalog = null;
+};
+
+export const permissionService = {
+  getCatalog,
+  resolve,
+  has,
+  hasAll,
+  hasAny,
+  getAssignedRoles,
+  clearCache,
+};
