@@ -3,22 +3,31 @@ ion-menu ion-content {
   --background: var(--ion-item-background, var(--ion-background-color, #fff));
 }
 
+@media (max-width: 767px) {
+  ion-menu {
+    --width: 100vw;
+    --side-width: 100vw;
+  }
+}
+
 /* Header Styling */
-#menu-header {
+.menu-header {
   padding: 20px 0 10px 0;
   border-bottom: 1px solid var(--ion-color-step-150, #e0e0e0);
 }
 
-#menu-header ion-list-header {
+.menu-header-logo {
   padding: 0 16px;
-  min-height: auto;
 }
 
-#menu-header ion-note {
+.menu-header ion-note,
+.menu-user-note {
   font-size: 14px;
   font-weight: 600;
   color: var(--ion-color-step-600, #666);
   display: block;
+  padding: 0 16px;
+  margin-bottom: 16px;
 }
 
 /* List Headers */

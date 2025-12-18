@@ -10,6 +10,7 @@ import type {
   CreateProjectPayload,
   UpdateProjectPayload,
   TaskFilters,
+  ProjectStatsView,
 } from '../types/api';
 
 const buildQueryString = (filters: ProjectFilters & PaginationParams): string => {
@@ -34,6 +35,40 @@ const list = async (
     path: `/api/project/list${query ? `?${query}` : ''}`,
     method: 'GET',
   });
+};
+
+const listMy = async (
+  filters: Pick<ProjectFilters, 'q'> = {},
+  pagination: PaginationParams = {}
+): Promise<PaginatedResponse<ProjectSummaryView>> => {
+  const params = new URLSearchParams();
+  if (pagination.offset !== undefined) params.append('offset', pagination.offset.toString());
+  if (pagination.limit !== undefined) params.append('limit', pagination.limit.toString());
+  if (pagination.sort_by) params.append('sort_by', pagination.sort_by);
+  if (pagination.direction) params.append('direction', pagination.direction);
+  if (filters.q) params.append('q', filters.q);
+
+  const query = params.toString();
+  return apiClient.request<PaginatedResponse<ProjectSummaryView>>({
+    path: `/api/project/my${query ? `?${query}` : ''}`,
+    method: 'GET',
+  });
+};
+
+const joinAsTeamLead = async (projectId: string): Promise<ProjectView> => {
+  const response = await apiClient.request<SingleResponse<ProjectView>>({
+    path: `/api/project/${projectId}/teamleads/me`,
+    method: 'POST',
+  });
+  return response.data;
+};
+
+const complete = async (projectId: string): Promise<ProjectView> => {
+  const response = await apiClient.request<SingleResponse<ProjectView>>({
+    path: `/api/project/${projectId}/complete`,
+    method: 'POST',
+  });
+  return response.data;
 };
 
 const getById = async (id: string): Promise<ProjectView> => {
@@ -74,12 +109,19 @@ const getTasks = async (
   filters: TaskFilters = {},
   pagination: PaginationParams = {}
 ): Promise<PaginatedResponse<TaskSummaryView>> => {
+  const mergedPagination: PaginationParams = {
+    sort_by: pagination.sort_by ?? 'status',
+    direction: pagination.direction ?? 'desc',
+    offset: pagination.offset,
+    limit: pagination.limit,
+  };
+
   const params = new URLSearchParams();
 
-  if (pagination.offset !== undefined) params.append('offset', pagination.offset.toString());
-  if (pagination.limit !== undefined) params.append('limit', pagination.limit.toString());
-  if (pagination.sort_by) params.append('sort_by', pagination.sort_by);
-  if (pagination.direction) params.append('direction', pagination.direction);
+  if (mergedPagination.offset !== undefined) params.append('offset', mergedPagination.offset.toString());
+  if (mergedPagination.limit !== undefined) params.append('limit', mergedPagination.limit.toString());
+  if (mergedPagination.sort_by) params.append('sort_by', mergedPagination.sort_by);
+  if (mergedPagination.direction) params.append('direction', mergedPagination.direction);
   if (filters.status) params.append('status', filters.status);
   if (filters.priority) params.append('priority', filters.priority);
   if (filters.assigned_to_user_id) params.append('assigned_to_user_id', filters.assigned_to_user_id);
@@ -95,11 +137,23 @@ const getTasks = async (
   });
 };
 
+const getStats = async (id: string): Promise<ProjectStatsView> => {
+  const response = await apiClient.request<SingleResponse<ProjectStatsView>>({
+    path: `/api/project/${id}/stats`,
+    method: 'GET',
+  });
+  return response.data;
+};
+
 export const projectService = {
   list,
+  listMy,
   getById,
   create,
   update,
   delete: deleteProject,
   getTasks,
+  getStats,
+  joinAsTeamLead,
+  complete,
 };

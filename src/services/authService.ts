@@ -1,4 +1,5 @@
 import { sessionStore, StoredSession, TokenPair, isAccessTokenExpired } from './sessionStore';
+import { API_BASE_URL } from '../config/apiConfig';
 
 type LoginPayload = { email: string; password: string };
 
@@ -10,7 +11,9 @@ type AuthResponse = {
   };
 };
 
-const API_BASE = '/api/auth';
+const API_BASE = `${API_BASE_URL}/auth`;
+
+let refreshPromise: Promise<StoredSession | null> | null = null;
 
 const parseAuthResponse = (response: Response): Promise<AuthResponse> => {
   const contentType = response.headers.get('content-type') || '';
@@ -61,19 +64,31 @@ const login = async (payload: LoginPayload): Promise<StoredSession> => {
 };
 
 const refresh = async (refreshToken: string): Promise<StoredSession | null> => {
-  const res = await postJson(`${API_BASE}/refresh`, { refresh_token: refreshToken });
-  if (!res.ok) {
-    return null;
+  if (refreshPromise) {
+    return refreshPromise;
   }
 
-  const json = await parseAuthResponse(res);
-  const session = buildSession(json.data);
-  if (!session) {
-    return null;
-  }
+  refreshPromise = (async () => {
+    try {
+      const res = await postJson(`${API_BASE}/refresh`, { refresh_token: refreshToken });
+      if (!res.ok) {
+        return null;
+      }
 
-  sessionStore.write(session);
-  return session;
+      const json = await parseAuthResponse(res);
+      const session = buildSession(json.data);
+      if (!session) {
+        return null;
+      }
+
+      sessionStore.write(session);
+      return session;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
 };
 
 const logout = async (): Promise<void> => {
@@ -127,6 +142,28 @@ const ensureValidAccessToken = async (): Promise<StoredSession | null> => {
   return refreshed;
 };
 
+const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
+  const session = sessionStore.read();
+  const accessToken = session?.tokens?.access_token;
+
+  const response = await fetch(`${API_BASE}/change-password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+    },
+    body: JSON.stringify({
+      current_password: currentPassword,
+      new_password: newPassword,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Password change failed with status ${response.status}`);
+  }
+};
+
 export const authService = {
   login,
   logout,
@@ -134,4 +171,5 @@ export const authService = {
   getSession,
   setSession,
   ensureValidAccessToken,
+  changePassword,
 };

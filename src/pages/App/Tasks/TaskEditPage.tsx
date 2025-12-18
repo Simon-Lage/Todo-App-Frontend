@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useHistory } from 'react-router-dom';
 import {
   IonContent,
@@ -11,7 +11,6 @@ import {
   IonItem,
   IonLabel,
   IonInput,
-  IonTextarea,
   IonSelect,
   IonSelectOption,
   IonButton,
@@ -20,11 +19,16 @@ import {
 import { saveOutline, closeOutline } from 'ionicons/icons';
 import { taskService } from '../../../services/taskService';
 import { projectService } from '../../../services/projectService';
-import type { ProjectSummaryView, TaskStatus } from '../../../types/api';
+import type { ProjectSummaryView, TaskStatus, UserView } from '../../../types/api';
+import TaskDescriptionEnhancer from '../../../components/TaskDescriptionEnhancer';
+import { useAuthSession } from '../../../routing/useAuthSession';
+import { toastService } from '../../../services/toastService';
+import { getErrorMessage } from '../../../utils/errorUtils';
 
 const TaskEditPage: React.FC = () => {
   const { taskId } = useParams<{ taskId: string }>();
   const history = useHistory();
+  const { authSession } = useAuthSession();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('open');
@@ -34,7 +38,20 @@ const TaskEditPage: React.FC = () => {
   const [projects, setProjects] = useState<ProjectSummaryView[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [createdByUserId, setCreatedByUserId] = useState<string | null>(null);
+  const [assignedUserIds, setAssignedUserIds] = useState<string[]>([]);
+
+  const canEdit = useMemo(() => {
+    const permissions = authSession.permissions ?? {};
+    const currentUserId = (authSession.user as UserView | null)?.id;
+    if (!currentUserId) return false;
+    if (permissions['perm_can_edit_tasks']) return true;
+    if (createdByUserId && createdByUserId === currentUserId) return true;
+    if (assignedUserIds.includes(currentUserId)) return true;
+    return false;
+  }, [assignedUserIds, authSession.permissions, authSession.user, createdByUserId]);
+
+  const isReadOnly = !canEdit;
 
   useEffect(() => {
     const loadTaskAndProjects = async () => {
@@ -51,10 +68,12 @@ const TaskEditPage: React.FC = () => {
         setOriginalStatus(taskData.status);
         setPriority(taskData.priority);
         setDueDate(taskData.due_date || '');
+        setCreatedByUserId(taskData.created_by_user_id);
+        setAssignedUserIds(taskData.assigned_user_ids || []);
         setProjects(projectsResponse.items);
       } catch (err) {
-        setError('Fehler beim Laden der Aufgabe');
-        console.error(err?.message || err);
+        toastService.error('Fehler beim Laden der Aufgabe');
+        console.error(getErrorMessage(err));
       } finally {
         setLoading(false);
       }
@@ -65,7 +84,12 @@ const TaskEditPage: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!title) {
-      setError('Bitte füllen Sie alle Pflichtfelder aus');
+      toastService.error('Bitte füllen Sie alle Pflichtfelder aus');
+      return;
+    }
+
+    if (!canEdit) {
+      toastService.error('Keine Berechtigung zum Bearbeiten dieser Aufgabe');
       return;
     }
 
@@ -82,8 +106,8 @@ const TaskEditPage: React.FC = () => {
       }
       history.push(`/app/tasks/${taskId}`);
     } catch (err) {
-      setError('Fehler beim Speichern der Aufgabe');
-      console.error(err?.message || err);
+      toastService.error('Fehler beim Speichern der Aufgabe');
+      console.error(getErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -107,8 +131,8 @@ const TaskEditPage: React.FC = () => {
         <p className="page-subtitle">Ändern Sie die Aufgabendetails</p>
       </div>
 
-      {error && (
-        <div className="error-message">{error}</div>
+      {isReadOnly && (
+        <div className="error-message">Keine Berechtigung zum Bearbeiten dieser Aufgabe.</div>
       )}
 
       <IonCard className="app-card">
@@ -125,19 +149,16 @@ const TaskEditPage: React.FC = () => {
                 placeholder="Aufgabentitel"
                 className="app-form-input"
                 required
+                disabled={isReadOnly}
               />
             </IonItem>
 
-            <IonItem className="app-form-item">
-              <IonLabel position="stacked" className="app-form-label">Beschreibung</IonLabel>
-              <IonTextarea
-                value={description}
-                onIonInput={(e) => setDescription(e.detail.value!)}
-                placeholder="Beschreibung der Aufgabe"
-                rows={4}
-                className="app-form-textarea"
-              />
-            </IonItem>
+            <TaskDescriptionEnhancer
+              title={title}
+              description={description}
+              onChange={setDescription}
+              disabled={saving || isReadOnly}
+            />
 
             <IonItem className="app-form-item">
               <IonLabel position="stacked" className="app-form-label">Status</IonLabel>
@@ -146,6 +167,7 @@ const TaskEditPage: React.FC = () => {
                 onIonChange={(e) => setStatus(e.detail.value!)}
                 interface="action-sheet"
                 className="app-form-input"
+                disabled={isReadOnly}
               >
                 <IonSelectOption value="open">Offen</IonSelectOption>
                 <IonSelectOption value="in_progress">In Bearbeitung</IonSelectOption>
@@ -162,6 +184,7 @@ const TaskEditPage: React.FC = () => {
                 onIonChange={(e) => setPriority(e.detail.value!)}
                 interface="action-sheet"
                 className="app-form-input"
+                disabled={isReadOnly}
               >
                 <IonSelectOption value="low">Niedrig</IonSelectOption>
                 <IonSelectOption value="medium">Mittel</IonSelectOption>
@@ -177,6 +200,7 @@ const TaskEditPage: React.FC = () => {
                 value={dueDate}
                 onIonInput={(e) => setDueDate(e.detail.value!)}
                 className="app-form-input"
+                disabled={isReadOnly}
               />
             </IonItem>
           </IonList>
@@ -184,15 +208,17 @@ const TaskEditPage: React.FC = () => {
       </IonCard>
 
       <div style={{ padding: '0 16px 16px' }}>
-        <IonButton
-          expand="block"
-          onClick={handleSubmit}
-          disabled={saving}
-          className="app-button"
-        >
-          <IonIcon slot="start" icon={saveOutline} />
-          {saving ? 'Speichert...' : 'Änderungen speichern'}
-        </IonButton>
+        {canEdit && (
+          <IonButton
+            expand="block"
+            onClick={handleSubmit}
+            disabled={saving}
+            className="app-button"
+          >
+            <IonIcon slot="start" icon={saveOutline} />
+            {saving ? 'Speichert...' : 'Änderungen speichern'}
+          </IonButton>
+        )}
 
         <IonButton
           routerLink={`/app/tasks/${taskId}`}

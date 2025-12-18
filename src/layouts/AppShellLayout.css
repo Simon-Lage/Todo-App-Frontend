@@ -5,6 +5,10 @@ ion-header ion-toolbar {
   --border-width: 0;
 }
 
+ion-header ion-toolbar ion-button {
+  --color: var(--ion-color-light);
+}
+
 .header-avatar {
   width: 32px;
   height: 32px;
@@ -23,31 +27,6 @@ ion-header ion-toolbar {
   font-weight: 700;
   font-size: 14px;
   border-radius: 50%;
-}
-
-.header-search {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  max-width: 0;
-  transition: all 0.2s ease;
-}
-
-.header-search.open {
-  opacity: 1;
-  max-width: 540px;
-}
-
-.header-searchbar {
-  --background: white;
-  --color: var(--ion-color-dark);
-  --placeholder-color: var(--ion-color-medium);
-  --icon-color: var(--ion-color-primary);
-  width: 100%;
-  margin-right: 8px;
-  border-radius: 12px;
 }
 
 /* Footer */
@@ -115,4 +94,3 @@ ion-header ion-toolbar {
     --side-width: 280px;
   }
 }
-

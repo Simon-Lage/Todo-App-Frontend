@@ -6,23 +6,22 @@ Nach dem Ausführen des Seed-Commands im Backend stehen folgende Test-Accounts z
 
 ### 🔴 **Administrator**
 ```
-E-Mail:    admin@changeit.de
+E-Mail:    admin@changeit.test
 Passwort:  123
 ```
-**Berechtigungen:** Vollzugriff auf alle Funktionen
+**Berechtigungen:** Nur Benutzer/Rollen/Logs
 
 **Kann:**
 - ✅ Benutzer verwalten (erstellen, bearbeiten, löschen, aktivieren/deaktivieren)
 - ✅ Rollen verwalten (erstellen, bearbeiten, löschen, Berechtigungen setzen)
-- ✅ Alle Tasks sehen, erstellen, bearbeiten, löschen, zuweisen
-- ✅ Alle Projekte sehen, erstellen, bearbeiten, löschen
 - ✅ System-Logs einsehen
+- ❌ Keine Aufgaben oder Projekte sehen/bearbeiten
 
 ---
 
 ### 🟡 **Abteilungsleiter (Teamlead)**
 ```
-E-Mail:    teamlead@changeit.de
+E-Mail:    teamlead@changeit.test
 Passwort:  123
 ```
 **Berechtigungen:** Projekt- und Task-Management
@@ -39,7 +38,7 @@ Passwort:  123
 
 ### 🟢 **Mitarbeiter (Staff)**
 ```
-E-Mail:    staff@changeit.de
+E-Mail:    staff@changeit.test
 Passwort:  123
 ```
 **Berechtigungen:** Basis-Zugriff
@@ -70,7 +69,6 @@ Dies erstellt:
 
 ## 📝 Hinweise
 
-- **Passwort-Länge:** Mindestens 12 Zeichen (Backend-Validierung)
-- **E-Mail-Domain:** Muss `@changeit.test` oder `@changeit.de` sein (Company-E-Mail-Check)
-- **Account-Aktivierung:** Neue Registrierungen sind standardmäßig inaktiv und müssen von einem Admin aktiviert werden
+- Die Seed-Daten verwenden als Domain standardmäßig `@changeit.test`.
+- Einige zufällig generierte Accounts können inaktiv sein; die drei festen Test-Accounts oben sind aktiv.
 

@@ -3,6 +3,7 @@ import { useHistory } from 'react-router-dom';
 import { IonContent, IonSpinner, IonIcon } from '@ionic/react';
 import { logOutOutline } from 'ionicons/icons';
 import { useAuthSession } from '../../../routing/useAuthSession';
+import { getErrorMessage } from '../../../utils/errorUtils';
 
 const LogoutPage: React.FC = () => {
   const history = useHistory();
@@ -16,7 +17,7 @@ const LogoutPage: React.FC = () => {
           history.replace('/auth/login');
         }, 1000);
       } catch (err) {
-        console.error('Logout-Fehler:', err?.message || err);
+        console.error('Logout-Fehler:', getErrorMessage(err));
         history.replace('/auth/login');
       }
     };

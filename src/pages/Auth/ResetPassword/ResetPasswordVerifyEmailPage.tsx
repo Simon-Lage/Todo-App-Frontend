@@ -2,35 +2,33 @@ import React, { useState, useEffect } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { IonText, IonInput, IonButton, IonItem, IonLabel, IonList, IonSpinner, IonIcon } from '@ionic/react';
 import { checkmarkCircleOutline } from 'ionicons/icons';
-import { userService } from '../../../services/userService';
+import { apiClient } from '../../../services/apiClient';
 
 const ResetPasswordVerifyEmailPage: React.FC = () => {
   const history = useHistory();
   const location = useLocation();
+  const [emailFromUrl, setEmailFromUrl] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const id = params.get('userId');
-    if (id) {
-      setUserId(id);
+    const emailParam = params.get('email');
+    if (emailParam) {
+      const decodedEmail = decodeURIComponent(emailParam);
+      setEmailFromUrl(decodedEmail);
+      setEmail(decodedEmail);
     } else {
-      setError('Keine Benutzer-ID angegeben');
+      setError('Keine E-Mail-Adresse angegeben');
+      history.push('/auth/reset-password/request');
     }
-  }, [location]);
+  }, [location, history]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
-
-    if (!userId) {
-      setError('Keine Benutzer-ID angegeben');
-      return;
-    }
 
     if (!email) {
       setError('Bitte geben Sie Ihre E-Mail-Adresse ein');
@@ -39,7 +37,25 @@ const ResetPasswordVerifyEmailPage: React.FC = () => {
 
     try {
       setLoading(true);
-      await userService.verifyEmailForPasswordReset(userId, email);
+      const response = await apiClient.request<{ data: { user_id: string } }>({
+        path: '/api/user/find-id-by-email',
+        method: 'POST',
+        body: { email },
+        skipAuth: true,
+      });
+
+      const userId = response.data?.user_id;
+      if (!userId) {
+        throw new Error('Benutzer nicht gefunden');
+      }
+
+      await apiClient.request({
+        path: `/api/user/verify-email-for-password-reset/${userId}`,
+        method: 'POST',
+        body: { email },
+        skipAuth: true,
+      });
+
       setSuccess(true);
     } catch (err) {
       setError('E-Mail-Adresse stimmt nicht überein oder Benutzer nicht gefunden');
@@ -91,7 +107,7 @@ const ResetPasswordVerifyEmailPage: React.FC = () => {
         fontSize: '14px',
         color: 'var(--ion-color-step-600)'
       }}>
-        Bitte geben Sie Ihre E-Mail-Adresse ein
+        {emailFromUrl ? `Bitte bestätigen Sie Ihre E-Mail-Adresse: ${emailFromUrl}` : 'Bitte geben Sie Ihre E-Mail-Adresse ein'}
       </p>
 
       <form onSubmit={handleSubmit}>

@@ -89,6 +89,15 @@ const updateSelf = async (payload: SelfUpdateUserPayload): Promise<UserView> => 
   return response.data;
 };
 
+const setProfileImage = async (imageId: string): Promise<UserView> => {
+  const response = await apiClient.request<SingleResponse<UserView>>({
+    path: '/api/user/profile-image',
+    method: 'POST',
+    body: { image_id: imageId },
+  });
+  return response.data;
+};
+
 const updateAdmin = async (id: string, payload: UpdateUserPayload): Promise<UserView> => {
   const response = await apiClient.request<SingleResponse<UserView>>({
     path: `/api/user/${id}`,
@@ -165,6 +174,7 @@ export const userService = {
   getByRole,
   create,
   updateSelf,
+  setProfileImage,
   updateAdmin,
   deactivate,
   reactivate,

@@ -17,6 +17,8 @@ import {
 } from '@ionic/react';
 import { saveOutline, closeOutline } from 'ionicons/icons';
 import { projectService } from '../../../services/projectService';
+import { toastService } from '../../../services/toastService';
+import { getErrorMessage } from '../../../utils/errorUtils';
 
 const ProjectEditPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -25,7 +27,6 @@ const ProjectEditPage: React.FC = () => {
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadProject = async () => {
@@ -35,8 +36,8 @@ const ProjectEditPage: React.FC = () => {
         setName(projectData.name);
         setDescription(projectData.description || '');
       } catch (err) {
-        setError('Fehler beim Laden des Projekts');
-        console.error(err?.message || err);
+        toastService.error('Fehler beim Laden des Projekts');
+        console.error(getErrorMessage(err));
       } finally {
         setLoading(false);
       }
@@ -46,7 +47,7 @@ const ProjectEditPage: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!name) {
-      setError('Bitte füllen Sie alle Pflichtfelder aus');
+      toastService.error('Bitte füllen Sie alle Pflichtfelder aus');
       return;
     }
 
@@ -58,8 +59,8 @@ const ProjectEditPage: React.FC = () => {
       });
       history.push(`/app/project/${projectId}`);
     } catch (err) {
-      setError('Fehler beim Speichern des Projekts');
-      console.error(err?.message || err);
+      toastService.error('Fehler beim Speichern des Projekts');
+      console.error(getErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -82,8 +83,6 @@ const ProjectEditPage: React.FC = () => {
         <h1 className="page-title">Projekt bearbeiten</h1>
         <p className="page-subtitle">Ändern Sie die Projektdetails</p>
       </div>
-
-      {error && <div className="error-message">{error}</div>}
 
       <IonCard className="app-card">
         <IonCardHeader>

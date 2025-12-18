@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { IonText, IonInput, IonButton, IonItem, IonLabel, IonList, IonSpinner, IonIcon, IonRouterLink } from '@ionic/react';
-import { checkmarkCircleOutline } from 'ionicons/icons';
+import { checkmarkCircleOutline, eyeOutline, eyeOffOutline } from 'ionicons/icons';
 import { apiClient } from '../../services/apiClient';
 
 const RegisterPage: React.FC = () => {
@@ -10,6 +10,8 @@ const RegisterPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -132,38 +134,84 @@ const RegisterPage: React.FC = () => {
             <IonLabel position="stacked" style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>
               Passwort * (min. 12 Zeichen)
             </IonLabel>
-            <IonInput
-              type="password"
-              value={password}
-              onIonInput={(e) => setPassword(e.detail.value!)}
-              required
-              style={{ 
-                '--background': '#f5f5f5',
-                '--padding-start': '12px',
-                '--padding-end': '12px',
-                'borderRadius': '8px',
-                'marginTop': '4px'
-              }}
-            />
+            <div style={{ position: 'relative', width: '100%' }}>
+              <IonInput
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onIonInput={(e) => setPassword(e.detail.value!)}
+                required
+                style={{ 
+                  '--background': '#f5f5f5',
+                  '--padding-start': '12px',
+                  '--padding-end': '48px',
+                  'borderRadius': '8px',
+                  'marginTop': '4px'
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--ion-color-step-600)',
+                }}
+                aria-label={showPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
+              >
+                <IonIcon icon={showPassword ? eyeOffOutline : eyeOutline} style={{ fontSize: '20px' }} />
+              </button>
+            </div>
           </IonItem>
 
           <IonItem lines="none" style={{ '--background': 'transparent', marginBottom: '8px' }}>
             <IonLabel position="stacked" style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>
               Passwort bestätigen *
             </IonLabel>
-            <IonInput
-              type="password"
-              value={passwordConfirm}
-              onIonInput={(e) => setPasswordConfirm(e.detail.value!)}
-              required
-              style={{ 
-                '--background': '#f5f5f5',
-                '--padding-start': '12px',
-                '--padding-end': '12px',
-                'borderRadius': '8px',
-                'marginTop': '4px'
-              }}
-            />
+            <div style={{ position: 'relative', width: '100%' }}>
+              <IonInput
+                type={showPasswordConfirm ? 'text' : 'password'}
+                value={passwordConfirm}
+                onIonInput={(e) => setPasswordConfirm(e.detail.value!)}
+                required
+                style={{ 
+                  '--background': '#f5f5f5',
+                  '--padding-start': '12px',
+                  '--padding-end': '48px',
+                  'borderRadius': '8px',
+                  'marginTop': '4px'
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--ion-color-step-600)',
+                }}
+                aria-label={showPasswordConfirm ? 'Passwort verbergen' : 'Passwort anzeigen'}
+              >
+                <IonIcon icon={showPasswordConfirm ? eyeOffOutline : eyeOutline} style={{ fontSize: '20px' }} />
+              </button>
+            </div>
           </IonItem>
         </IonList>
 

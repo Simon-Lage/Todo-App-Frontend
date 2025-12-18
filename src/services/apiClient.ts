@@ -1,5 +1,6 @@
 import { authService } from './authService';
 import { sessionStore, isAccessTokenExpired } from './sessionStore';
+import { API_BASE_URL } from '../config/apiConfig';
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 
@@ -11,12 +12,10 @@ type ApiRequestConfig = {
   skipAuth?: boolean;
 };
 
-const API_BASE = '/api';
-
 const toJson = async <T>(response: Response): Promise<T> => {
   const contentType = response.headers.get('content-type') || '';
   if (contentType.includes('application/json')) {
-    return response.json() as Promise<T>;
+    return await response.json() as Promise<T>;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,10 +28,17 @@ const buildUrl = (path: string): string => {
   }
 
   if (path.startsWith('/')) {
+    if (API_BASE_URL.startsWith('http')) {
+      return `${API_BASE_URL}${path}`;
+    }
     return path;
   }
 
-  return `${API_BASE}/${path}`;
+  if (API_BASE_URL.startsWith('http')) {
+    return `${API_BASE_URL}/${path}`;
+  }
+
+  return `${API_BASE_URL}/${path}`;
 };
 
 const performFetch = async (config: ApiRequestConfig, accessToken?: string): Promise<Response> => {
@@ -66,32 +72,38 @@ const request = async <T>(config: ApiRequestConfig): Promise<T> => {
 
   const response = await performFetch(config, accessToken);
 
-  if (response.status === 401 && tokens?.refresh_token) {
-    const refreshed = await authService.refresh(tokens.refresh_token);
-    const retryToken = refreshed?.tokens?.access_token;
+  if (response.status === 401) {
+    const currentSession = authService.getSession();
+    const currentRefreshToken = currentSession?.tokens?.refresh_token;
+    
+    if (currentRefreshToken) {
+      const refreshed = await authService.ensureValidAccessToken();
+      const retryToken = refreshed?.tokens?.access_token;
 
-    if (retryToken) {
-      const retryResponse = await performFetch(config, retryToken);
-      if (retryResponse.ok) {
-        return toJson<T>(retryResponse);
-      }
-      if (retryResponse.status === 401) {
-        sessionStore.clear();
-      }
-      
-      const errorData = await toJson<any>(retryResponse);
-      if (errorData?.debug) {
-        console.group(`🔴 API Error ${retryResponse.status}: ${errorData.title || 'Unknown'}`);
-        console.log('Detail:', errorData.detail);
-        console.log('Code:', errorData.code);
-        if (errorData.errors) {
-          console.log('Errors:', errorData.errors);
+      if (retryToken) {
+        const retryResponse = await performFetch(config, retryToken);
+        if (retryResponse.ok) {
+          return toJson<T>(retryResponse);
         }
-        console.log('Debug Info:', errorData.debug);
-        console.groupEnd();
+        if (retryResponse.status === 401) {
+          sessionStore.clear();
+        }
+        
+        const errorData = await toJson<any>(retryResponse);
+        if (errorData?.debug) {
+          console.group(`🔴 API Error ${retryResponse.status}: ${errorData.title || 'Unknown'}`);
+          console.log('Detail:', errorData.detail);
+          console.log('Code:', errorData.code);
+          if (errorData.errors) {
+            console.log('Errors:', errorData.errors);
+          }
+          console.log('Debug Info:', errorData.debug);
+          console.groupEnd();
+        }
+        
+        const message = errorData?.detail || `Request failed with status ${retryResponse.status}`;
+        throw new Error(message);
       }
-      
-      throw new Error(`Request failed with status ${retryResponse.status}`);
     }
   }
 
@@ -109,7 +121,8 @@ const request = async <T>(config: ApiRequestConfig): Promise<T> => {
       console.groupEnd();
     }
     
-    throw new Error(`Request failed with status ${response.status}`);
+    const message = errorData?.detail || `Request failed with status ${response.status}`;
+    throw new Error(message);
   }
 
   return toJson<T>(response);

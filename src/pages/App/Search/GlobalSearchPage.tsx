@@ -17,12 +17,19 @@ import {
 } from '@ionic/react';
 import { checkmarkCircleOutline, briefcaseOutline, personOutline, searchOutline } from 'ionicons/icons';
 import { searchService } from '../../../services/searchService';
-import type { GlobalSearchResultView } from '../../../types/api';
+import type { TaskSummaryView, ProjectSummaryView, UserListView } from '../../../types/api';
+import { getErrorMessage } from '../../../utils/errorUtils';
+
+type SearchResults = {
+  tasks: TaskSummaryView[];
+  projects: ProjectSummaryView[];
+  users: UserListView[];
+};
 
 const GlobalSearchPage: React.FC = () => {
   const [query, setQuery] = useState('');
   const [entityType, setEntityType] = useState<'all' | 'task' | 'project' | 'user'>('all');
-  const [results, setResults] = useState<GlobalSearchResultView | null>(null);
+  const [results, setResults] = useState<SearchResults | null>(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
@@ -35,11 +42,11 @@ const GlobalSearchPage: React.FC = () => {
 
     try {
       setLoading(true);
-      const searchResults = await searchService.globalSearch(searchQuery);
+      const searchResults = await searchService.searchAll(searchQuery);
       setResults(searchResults);
       setSearched(true);
     } catch (err) {
-      console.error('Suchfehler:', err?.message || err);
+      console.error('Suchfehler:', getErrorMessage(err));
     } finally {
       setLoading(false);
     }

@@ -1,15 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { IonContent, IonPage, IonText, IonSpinner, IonButton, IonList, IonItem, IonLabel, IonThumbnail, IonCard, IonCardContent } from '@ionic/react';
+import { IonContent, IonSpinner, IonButton, IonList, IonItem, IonLabel, IonThumbnail, IonCard, IonCardContent, IonIcon, useIonAlert } from '@ionic/react';
+import { cloudUploadOutline, arrowBackOutline, trashOutline, imageOutline } from 'ionicons/icons';
 import { imageService } from '../../../services/imageService';
 import type { ImageView } from '../../../types/api';
+import { useAuthSession } from '../../../routing/useAuthSession';
+import { getErrorMessage } from '../../../utils/errorUtils';
+import AuthenticatedImage from '../../../components/AuthenticatedImage';
 
 const TaskImagesPage: React.FC = () => {
   const { taskId } = useParams<{ taskId: string }>();
+  const { authSession } = useAuthSession();
+  const [presentAlert] = useIonAlert();
   const [images, setImages] = useState<ImageView[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const canUpload = Boolean(authSession.permissions?.['perm_can_edit_tasks']);
 
   useEffect(() => {
     loadImages();
@@ -18,11 +26,12 @@ const TaskImagesPage: React.FC = () => {
   const loadImages = async () => {
     try {
       setLoading(true);
+      setError(null);
       const imageList = await imageService.list({ taskId });
       setImages(imageList);
     } catch (err) {
       setError('Fehler beim Laden der Bilder');
-      console.error(err?.message || err);
+      console.error(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -44,90 +53,116 @@ const TaskImagesPage: React.FC = () => {
       await loadImages();
     } catch (err) {
       setError('Fehler beim Hochladen des Bildes');
-      console.error(err?.message || err);
+      console.error(getErrorMessage(err));
     } finally {
       setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
   const handleDelete = async (imageId: string) => {
-    if (!confirm('Möchten Sie dieses Bild wirklich löschen?')) return;
-
     try {
       await imageService.delete(imageId);
       await loadImages();
     } catch (err) {
       setError('Fehler beim Löschen des Bildes');
-      console.error(err?.message || err);
+      console.error(getErrorMessage(err));
     }
+  };
+
+  const confirmDelete = (image: ImageView) => {
+    presentAlert({
+      header: 'Bild löschen',
+      message: `Möchten Sie das Bild "${image.original_filename}" wirklich löschen?`,
+      buttons: [
+        { text: 'Abbrechen', role: 'cancel' },
+        { text: 'Löschen', role: 'destructive', handler: () => void handleDelete(image.id) },
+      ],
+    });
   };
 
   if (loading) {
     return (
-      <IonPage>
-        <IonContent className="ion-padding ion-text-center">
-          <IonSpinner />
-        </IonContent>
-      </IonPage>
+      <IonContent className="app-page-content">
+        <div className="loading-container">
+          <IonSpinner name="circular" />
+          <p>Lade Bilder...</p>
+        </div>
+      </IonContent>
     );
   }
 
   return (
-    <IonPage>
-      <IonContent className="ion-padding">
-        <IonText>
-          <h1>Aufgaben-Bilder</h1>
-        </IonText>
+    <IonContent className="app-page-content">
+      <div className="page-header">
+        <h1 className="page-title">Aufgaben-Bilder</h1>
+        <p className="page-subtitle">{images.length} Bild{images.length !== 1 ? 'er' : ''} vorhanden</p>
+      </div>
 
-        {error && <IonText color="danger">{error}</IonText>}
+      {error && (
+        <div className="error-message">{error}</div>
+      )}
 
-        <IonCard>
+      {canUpload ? (
+        <IonCard className="app-card">
           <IonCardContent>
             <input
+              ref={fileInputRef}
               type="file"
               accept="image/*"
               onChange={handleFileSelect}
               disabled={uploading}
               style={{ display: 'none' }}
-              id="file-upload"
             />
-            <label htmlFor="file-upload">
-              <IonButton expand="block" disabled={uploading}>
-                {uploading ? <IonSpinner /> : 'Bild hochladen'}
-              </IonButton>
-            </label>
+            <IonButton
+              expand="block"
+              disabled={uploading}
+              className="app-button"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <IonIcon slot="start" icon={cloudUploadOutline} />
+              {uploading ? 'Lädt hoch...' : 'Bild hochladen'}
+            </IonButton>
           </IonCardContent>
         </IonCard>
+      ) : null}
 
-        {images.length === 0 ? (
-          <IonText className="ion-text-center">
-            <p>Keine Bilder vorhanden</p>
-          </IonText>
-        ) : (
-          <IonList>
-            {images.map((image) => (
-              <IonItem key={image.id}>
-                <IonThumbnail slot="start">
-                  <img src={imageService.getDownloadUrl(image.id)} alt={image.original_filename} />
-                </IonThumbnail>
-                <IonLabel>
-                  <h2>{image.original_filename}</h2>
-                  <p>Größe: {(image.size / 1024).toFixed(2)} KB</p>
-                  <p>Hochgeladen: {new Date(image.created_at).toLocaleDateString()}</p>
-                </IonLabel>
-                <IonButton slot="end" color="danger" onClick={() => handleDelete(image.id)}>
-                  Löschen
+      {images.length === 0 ? (
+        <div className="empty-state">
+          <IonIcon icon={imageOutline} className="empty-state-icon" />
+          <p>Keine Bilder vorhanden</p>
+        </div>
+      ) : (
+        <IonList className="app-list" style={{ padding: '0 16px' }}>
+	          {images.map((image) => (
+	            <IonItem key={image.id} className="app-list-item">
+	              <IonThumbnail slot="start">
+	                <AuthenticatedImage imageId={image.id} alt={image.original_filename} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+	              </IonThumbnail>
+	              <IonLabel>
+	                <h3>{image.original_filename}</h3>
+                <p>Größe: {(image.size / 1024).toFixed(2)} KB</p>
+                <p>Hochgeladen: {new Date(image.created_at).toLocaleDateString('de-DE')}</p>
+              </IonLabel>
+              {canUpload ? (
+                <IonButton slot="end" color="danger" size="small" onClick={() => confirmDelete(image)}>
+                  <IonIcon icon={trashOutline} />
                 </IonButton>
-              </IonItem>
-            ))}
-          </IonList>
-        )}
+              ) : null}
+            </IonItem>
+          ))}
+        </IonList>
+      )}
 
-        <IonButton routerLink={`/app/tasks/${taskId}`} expand="block" fill="outline">
+      <div style={{ padding: '16px' }}>
+        <IonButton routerLink={`/app/tasks/${taskId}`} expand="block" fill="outline" className="app-button-secondary">
+          <IonIcon slot="start" icon={arrowBackOutline} />
           Zurück zur Aufgabe
         </IonButton>
-      </IonContent>
-    </IonPage>
+      </div>
+    </IonContent>
   );
 };
 

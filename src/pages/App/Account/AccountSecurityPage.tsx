@@ -13,31 +13,65 @@ import {
   IonIcon,
   IonText,
 } from '@ionic/react';
-import { lockClosedOutline, keyOutline, shieldCheckmarkOutline } from 'ionicons/icons';
+import { lockClosedOutline, keyOutline, shieldCheckmarkOutline, eyeOutline, eyeOffOutline } from 'ionicons/icons';
 import { userService } from '../../../services/userService';
+import { authService } from '../../../services/authService';
+import { toastService } from '../../../services/toastService';
+import { getErrorMessage } from '../../../utils/errorUtils';
 
 const AccountSecurityPage: React.FC = () => {
-  const [userId, setUserId] = useState('');
   const [requesting, setRequesting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState(false);
 
   const handleRequestReset = async () => {
-    if (!userId) {
-      setError('Bitte geben Sie Ihre Benutzer-ID ein');
+    try {
+      setRequesting(true);
+      await userService.resetPasswordSelf();
+      setSuccess(true);
+    } catch (err) {
+      toastService.error('Fehler beim Anfordern des Passwort-Resets');
+      console.error(getErrorMessage(err));
+    } finally {
+      setRequesting(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toastService.error('Bitte füllen Sie alle Felder aus');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toastService.error('Die neuen Passwörter stimmen nicht überein');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      toastService.error('Das neue Passwort muss mindestens 8 Zeichen lang sein');
       return;
     }
 
     try {
-      setRequesting(true);
-      setError(null);
-      await userService.requestPasswordReset(userId);
-      setSuccess(true);
+      setChangingPassword(true);
+      await authService.changePassword(currentPassword, newPassword);
+      setPasswordChangeSuccess(true);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
     } catch (err) {
-      setError('Fehler beim Anfordern des Passwort-Resets');
-      console.error(err?.message || err);
+      toastService.error(getErrorMessage(err));
+      console.error(getErrorMessage(err));
     } finally {
-      setRequesting(false);
+      setChangingPassword(false);
     }
   };
 
@@ -68,16 +102,163 @@ const AccountSecurityPage: React.FC = () => {
     );
   }
 
-  return (
+	  return (
     <IonContent className="app-page-content">
       <div className="page-header">
         <h1 className="page-title">Sicherheit</h1>
         <p className="page-subtitle">Verwalten Sie Ihre Sicherheitseinstellungen</p>
       </div>
 
-      {error && (
-        <div className="error-message">{error}</div>
+      {passwordChangeSuccess && (
+        <IonCard className="app-card" color="success">
+          <IonCardContent>
+            <IonText color="light">
+              <strong>Passwort erfolgreich geändert!</strong>
+            </IonText>
+          </IonCardContent>
+        </IonCard>
       )}
+
+      <IonCard className="app-card">
+        <IonCardHeader>
+          <IonCardTitle>
+            <IonIcon icon={keyOutline} style={{ marginRight: '8px' }} />
+            Passwort ändern
+          </IonCardTitle>
+        </IonCardHeader>
+        <IonCardContent>
+          <IonText color="medium" style={{ display: 'block', marginBottom: '20px', fontSize: '14px' }}>
+            Ändern Sie Ihr Passwort direkt hier. Sie müssen Ihr aktuelles Passwort eingeben.
+          </IonText>
+
+          <IonList lines="none" style={{ background: 'transparent' }}>
+            <IonItem className="app-form-item">
+              <IonLabel position="stacked" className="app-form-label">
+                Aktuelles Passwort
+              </IonLabel>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <IonInput
+                  type={showCurrentPassword ? 'text' : 'password'}
+                  value={currentPassword}
+                  onIonInput={(e) => setCurrentPassword(e.detail.value!)}
+                  placeholder="Aktuelles Passwort"
+                  className="app-form-input"
+                  required
+                  style={{ paddingRight: '48px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'transparent',
+                    border: 'none',
+                    padding: '8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--ion-color-step-600)',
+                  }}
+                  aria-label={showCurrentPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
+                >
+                  <IonIcon icon={showCurrentPassword ? eyeOffOutline : eyeOutline} style={{ fontSize: '20px' }} />
+                </button>
+              </div>
+            </IonItem>
+
+            <IonItem className="app-form-item">
+              <IonLabel position="stacked" className="app-form-label">
+                Neues Passwort
+              </IonLabel>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <IonInput
+                  type={showNewPassword ? 'text' : 'password'}
+                  value={newPassword}
+                  onIonInput={(e) => setNewPassword(e.detail.value!)}
+                  placeholder="Neues Passwort (min. 8 Zeichen)"
+                  className="app-form-input"
+                  required
+                  style={{ paddingRight: '48px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'transparent',
+                    border: 'none',
+                    padding: '8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--ion-color-step-600)',
+                  }}
+                  aria-label={showNewPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
+                >
+                  <IonIcon icon={showNewPassword ? eyeOffOutline : eyeOutline} style={{ fontSize: '20px' }} />
+                </button>
+              </div>
+            </IonItem>
+
+            <IonItem className="app-form-item">
+              <IonLabel position="stacked" className="app-form-label">
+                Neues Passwort bestätigen
+              </IonLabel>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <IonInput
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onIonInput={(e) => setConfirmPassword(e.detail.value!)}
+                  placeholder="Neues Passwort wiederholen"
+                  className="app-form-input"
+                  required
+                  style={{ paddingRight: '48px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'transparent',
+                    border: 'none',
+                    padding: '8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--ion-color-step-600)',
+                  }}
+                  aria-label={showConfirmPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
+                >
+                  <IonIcon icon={showConfirmPassword ? eyeOffOutline : eyeOutline} style={{ fontSize: '20px' }} />
+                </button>
+              </div>
+            </IonItem>
+          </IonList>
+
+          <IonButton
+            expand="block"
+            onClick={handleChangePassword}
+            disabled={changingPassword}
+            className="app-button"
+            style={{ marginTop: '20px' }}
+          >
+            <IonIcon slot="start" icon={keyOutline} />
+            {changingPassword ? 'Wird geändert...' : 'Passwort ändern'}
+          </IonButton>
+        </IonCardContent>
+      </IonCard>
 
       <IonCard className="app-card">
         <IonCardHeader>
@@ -91,28 +272,12 @@ const AccountSecurityPage: React.FC = () => {
             Fordern Sie einen Passwort-Reset an. Sie erhalten eine E-Mail mit weiteren Anweisungen.
           </IonText>
 
-          <IonList lines="none" style={{ background: 'transparent' }}>
-            <IonItem className="app-form-item">
-              <IonLabel position="stacked" className="app-form-label">
-                <IonIcon icon={keyOutline} style={{ marginRight: '8px' }} />
-                Benutzer-ID
-              </IonLabel>
-              <IonInput
-                value={userId}
-                onIonInput={(e) => setUserId(e.detail.value!)}
-                placeholder="Ihre Benutzer-ID"
-                className="app-form-input"
-                required
-              />
-            </IonItem>
-          </IonList>
-
           <IonButton
             expand="block"
             onClick={handleRequestReset}
             disabled={requesting}
             className="app-button"
-            style={{ marginTop: '20px' }}
+            fill="outline"
           >
             <IonIcon slot="start" icon={lockClosedOutline} />
             {requesting ? 'Wird angefordert...' : 'Passwort-Reset anfordern'}

@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from "react";
 import {
-  IonButton,
-  IonInput,
-  IonItem,
+	  IonButton,
+	  IonInput,
+	  IonItem,
   IonLabel,
   IonList,
   IonSpinner,
-  IonText,
-  IonRouterLink,
-} from '@ionic/react';
+	  IonText,
+	  IonRouterLink,
+	  IonIcon,
+	} from '@ionic/react';
+import { eyeOutline, eyeOffOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { useAuthSession } from '../../routing/useAuthSession';
 
@@ -17,6 +19,7 @@ const LoginPage: React.FC = () => {
   const { authSession, login, loading, error, clearError } = useAuthSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -81,18 +84,30 @@ const LoginPage: React.FC = () => {
             />
           </IonItem>
           
-          <IonItem lines="none" style={{ '--background': 'transparent', marginBottom: '20px' }}>
-            <IonLabel position="stacked">Passwort</IonLabel>
-            <IonInput
-              type="password"
-              value={password}
-              onIonInput={(e) => setPassword(e.detail.value ?? '')}
-              required
-              autocomplete="current-password"
-              placeholder="••••••••"
-            />
-          </IonItem>
-        </IonList>
+		          <IonItem lines="none" style={{ '--background': 'transparent', marginBottom: '20px' }}>
+		            <IonLabel position="stacked">Passwort</IonLabel>
+                <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+		              <IonInput
+		                type={showPassword ? 'text' : 'password'}
+		                value={password}
+		                onIonInput={(e) => setPassword(e.detail.value ?? '')}
+		                required
+		                autocomplete="current-password"
+		                placeholder="••••••••"
+                    style={{ flex: 1 }}
+		              />
+		              <IonButton
+		                type="button"
+		                fill="clear"
+		                color="medium"
+		                onClick={() => setShowPassword(!showPassword)}
+		                aria-label={showPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
+		              >
+		                <IonIcon slot="icon-only" icon={showPassword ? eyeOffOutline : eyeOutline} />
+		              </IonButton>
+                </div>
+		          </IonItem>
+		        </IonList>
 
         {(formError || error) && (
           <IonText color="danger" style={{ 

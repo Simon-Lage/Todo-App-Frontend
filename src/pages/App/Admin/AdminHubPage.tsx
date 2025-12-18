@@ -15,7 +15,6 @@ import {
   peopleOutline,
   shieldOutline,
   documentTextOutline,
-  settingsOutline,
 } from 'ionicons/icons';
 
 const AdminHubPage: React.FC = () => {
@@ -40,7 +39,7 @@ const AdminHubPage: React.FC = () => {
                 <p style={{ marginBottom: '16px', color: 'var(--ion-color-step-600)' }}>
                   Verwalten Sie Benutzerkonten, Aktivierungsstatus und Berechtigungen.
                 </p>
-                <IonButton routerLink="/app/admin/users/list" expand="block" fill="outline">
+                <IonButton routerLink="/app/admin/users" expand="block" fill="outline">
                   Benutzer verwalten
                 </IonButton>
               </IonCardContent>
@@ -59,7 +58,7 @@ const AdminHubPage: React.FC = () => {
                 <p style={{ marginBottom: '16px', color: 'var(--ion-color-step-600)' }}>
                   Erstellen und bearbeiten Sie Rollen mit spezifischen Berechtigungen.
                 </p>
-                <IonButton routerLink="/app/admin/roles/list" expand="block" fill="outline">
+                <IonButton routerLink="/app/admin/roles" expand="block" fill="outline">
                   Rollen verwalten
                 </IonButton>
               </IonCardContent>
@@ -80,25 +79,6 @@ const AdminHubPage: React.FC = () => {
                 </p>
                 <IonButton routerLink="/app/admin/logs" expand="block" fill="outline">
                   Logs anzeigen
-                </IonButton>
-              </IonCardContent>
-            </IonCard>
-          </IonCol>
-
-          <IonCol size="12" sizeMd="6">
-            <IonCard className="app-card" style={{ height: '100%' }}>
-              <IonCardHeader>
-                <IonCardTitle style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <IonIcon icon={settingsOutline} style={{ fontSize: '32px', color: 'var(--ion-color-warning)' }} />
-                  Systemeinstellungen
-                </IonCardTitle>
-              </IonCardHeader>
-              <IonCardContent>
-                <p style={{ marginBottom: '16px', color: 'var(--ion-color-step-600)' }}>
-                  Konfigurieren Sie systemweite Einstellungen und Parameter.
-                </p>
-                <IonButton expand="block" fill="outline" disabled>
-                  Bald verfügbar
                 </IonButton>
               </IonCardContent>
             </IonCard>

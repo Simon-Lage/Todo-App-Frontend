@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   IonContent,
   IonIcon,
@@ -31,10 +31,13 @@ import {
   logOutSharp,
   checkmarkCircleOutline,
   checkmarkCircleSharp,
+  peopleOutline,
+  peopleSharp,
 } from 'ionicons/icons';
 import './Menu.css';
 import { useAuthSession } from '../routing/useAuthSession';
 import logoImg from '../assets/ChangeIT_logo_1500x480_WEI_BM.png';
+import { menuController } from '@ionic/core';
 
 interface AppPage {
   url: string;
@@ -42,41 +45,60 @@ interface AppPage {
   mdIcon: string;
   title: string;
   requiredPermission?: string;
+  rolesOnly?: string[];
 }
 
-const mainPages: AppPage[] = [
+const baseMainPages: AppPage[] = [
   {
     title: 'Dashboard',
     url: '/app/dashboard',
     iosIcon: homeOutline,
-    mdIcon: homeSharp
+    mdIcon: homeSharp,
   },
   {
     title: 'Meine Aufgaben',
     url: '/app/tasks/my',
     iosIcon: checkmarkCircleOutline,
-    mdIcon: checkmarkCircleSharp
-  },
-  {
-    title: 'Alle Aufgaben',
-    url: '/app/tasks/all',
-    iosIcon: listOutline,
-    mdIcon: listSharp,
-    requiredPermission: 'perm_can_read_tasks_all'
+    mdIcon: checkmarkCircleSharp,
   },
   {
     title: 'Projekte',
     url: '/app/project/list/all',
     iosIcon: briefcaseOutline,
-    mdIcon: briefcaseSharp
+    mdIcon: briefcaseSharp,
   },
   {
     title: 'Suche',
     url: '/app/search',
     iosIcon: searchOutline,
-    mdIcon: searchSharp
-  }
+    mdIcon: searchSharp,
+  },
 ];
+
+const teamleadPages: AppPage[] = [
+  {
+    title: 'Teamleitung',
+    url: '/app/lead',
+    iosIcon: peopleOutline,
+    mdIcon: peopleSharp,
+    requiredPermission: 'perm_can_read_all_tasks',
+  },
+  {
+    title: 'Team-Aufgaben',
+    url: '/app/lead/tasks',
+    iosIcon: listOutline,
+    mdIcon: listSharp,
+    requiredPermission: 'perm_can_read_all_tasks',
+  },
+];
+
+const legacyAllTasksPage: AppPage = {
+  title: 'Alle Aufgaben',
+  url: '/app/tasks/all',
+  iosIcon: listOutline,
+  mdIcon: listSharp,
+  requiredPermission: 'perm_can_read_all_tasks',
+};
 
 const accountPages: AppPage[] = [
   {
@@ -90,7 +112,7 @@ const accountPages: AppPage[] = [
     url: '/app/admin',
     iosIcon: shieldOutline,
     mdIcon: shieldSharp,
-    requiredPermission: 'perm_can_read_user'
+    rolesOnly: ['admin']
   },
   {
     title: 'Abmelden',
@@ -102,49 +124,94 @@ const accountPages: AppPage[] = [
 
 const Menu: React.FC = () => {
   const location = useLocation();
-  const { user, permissions } = useAuthSession();
+  const { authSession } = useAuthSession();
+  const user = authSession.user as { name?: string } | null;
+  const permissions = authSession.permissions ?? {};
+  const roles = authSession.roles ?? [];
   const [userPermissions, setUserPermissions] = useState<Set<string>>(new Set());
+  const [userRoles, setUserRoles] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (permissions) {
-      setUserPermissions(new Set(permissions));
-    }
+    const allowedPermissions = Object.entries(permissions)
+      .filter(([, allowed]) => Boolean(allowed))
+      .map(([permissionKey]) => permissionKey);
+    setUserPermissions(new Set(allowedPermissions));
   }, [permissions]);
+
+  useEffect(() => {
+    if (roles) {
+      setUserRoles(new Set(roles));
+    }
+  }, [roles]);
 
   const hasPermission = (permission?: string): boolean => {
     if (!permission) return true;
     return userPermissions.has(permission);
   };
 
+  const hasRole = (role?: string): boolean => {
+    if (!role) return true;
+    return userRoles.has(role);
+  };
+
+  const isAdmin = hasRole('admin');
+  const isTeamlead = hasPermission('perm_can_read_all_tasks');
+
+  const visibleMainPages = useMemo(() => {
+    if (isAdmin) return [];
+    if (isTeamlead) return [...teamleadPages, ...baseMainPages];
+    return [...baseMainPages, legacyAllTasksPage];
+  }, [isAdmin, isTeamlead]);
+
+  const visibleAccountPages = accountPages.filter((page) => {
+    if (page.rolesOnly && !page.rolesOnly.every((role) => hasRole(role))) {
+      return false;
+    }
+    return hasPermission(page.requiredPermission);
+  });
+
   return (
-    <IonMenu contentId="main" type="overlay">
+    <IonMenu contentId="main" type="overlay" menuId="main-menu" swipeGesture={false}>
       <IonContent>
         {/* Header mit Logo und User-Info */}
-        <IonList id="menu-header">
-          <IonListHeader>
-            <IonImg src={logoImg} alt="ChangeIT Logo" style={{ maxHeight: '40px', marginBottom: '8px' }} />
-          </IonListHeader>
+        <div id="menu-header" className="menu-header">
+          <div className="menu-header-logo">
+            <IonImg
+              src={logoImg}
+              alt="ChangeIT Logo"
+              style={{
+                height: '48px',
+                width: 'auto',
+                maxWidth: '100%',
+                objectFit: 'contain',
+                display: 'block',
+                margin: '0 auto 8px',
+              }}
+            />
+          </div>
           {user && (
-            <IonNote style={{ padding: '0 16px', marginBottom: '16px' }}>
+            <IonNote className="menu-user-note">
               {user.name}
             </IonNote>
           )}
-        </IonList>
+        </div>
 
         {/* Haupt-Navigation */}
         <IonList id="main-list">
           <IonListHeader>Navigation</IonListHeader>
-          {mainPages.map((page, index) => {
+          {visibleMainPages.map((page, index) => {
+            if (page.rolesOnly && !page.rolesOnly.every((role) => hasRole(role))) return null;
             if (!hasPermission(page.requiredPermission)) return null;
             
             return (
-              <IonMenuToggle key={index} autoHide={false}>
+              <IonMenuToggle key={index} autoHide>
                 <IonItem 
                   className={location.pathname === page.url ? 'selected' : ''} 
                   routerLink={page.url} 
-                  routerDirection="none" 
+                  routerDirection="root" 
                   lines="none" 
                   detail={false}
+                  onClick={() => void menuController.close('main-menu')}
                 >
                   <IonIcon aria-hidden="true" slot="start" ios={page.iosIcon} md={page.mdIcon} />
                   <IonLabel>{page.title}</IonLabel>
@@ -157,17 +224,16 @@ const Menu: React.FC = () => {
         {/* Account & Admin */}
         <IonList id="account-list">
           <IonListHeader>Account</IonListHeader>
-          {accountPages.map((page, index) => {
-            if (!hasPermission(page.requiredPermission)) return null;
-            
+          {visibleAccountPages.map((page, index) => {
             return (
-              <IonMenuToggle key={index} autoHide={false}>
+              <IonMenuToggle key={index} autoHide>
                 <IonItem 
                   className={location.pathname === page.url ? 'selected' : ''} 
                   routerLink={page.url} 
-                  routerDirection="none" 
+                  routerDirection="root" 
                   lines="none" 
                   detail={false}
+                  onClick={() => void menuController.close('main-menu')}
                 >
                   <IonIcon aria-hidden="true" slot="start" ios={page.iosIcon} md={page.mdIcon} />
                   <IonLabel>{page.title}</IonLabel>

@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { IonContent, IonPage, IonText, IonSpinner, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonButton, IonGrid, IonRow, IonCol } from '@ionic/react';
+import { IonContent, IonText, IonSpinner, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonButton, IonGrid, IonRow, IonCol, IonIcon } from '@ionic/react';
+import { briefcaseOutline, listOutline } from 'ionicons/icons';
 import { projectService } from '../../../services/projectService';
 import type { ProjectView, TaskSummaryView } from '../../../types/api';
+import { getErrorMessage } from '../../../utils/errorUtils';
 
 const ProjectOverviewPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -23,7 +25,7 @@ const ProjectOverviewPage: React.FC = () => {
         setTasks(tasksResponse.items);
       } catch (err) {
         setError('Fehler beim Laden der Übersicht');
-        console.error(err?.message || err);
+        console.error(getErrorMessage(err));
       } finally {
         setLoading(false);
       }
@@ -34,21 +36,20 @@ const ProjectOverviewPage: React.FC = () => {
 
   if (loading) {
     return (
-      <IonPage>
-        <IonContent className="ion-padding ion-text-center">
-          <IonSpinner />
-        </IonContent>
-      </IonPage>
+      <IonContent className="app-page-content">
+        <div className="loading-container">
+          <IonSpinner name="circular" />
+          <p>Lade Übersicht...</p>
+        </div>
+      </IonContent>
     );
   }
 
   if (error || !project) {
     return (
-      <IonPage>
-        <IonContent className="ion-padding">
-          <IonText color="danger">{error || 'Projekt nicht gefunden'}</IonText>
-        </IonContent>
-      </IonPage>
+      <IonContent className="app-page-content">
+        <div className="error-message">{error || 'Projekt nicht gefunden'}</div>
+      </IonContent>
     );
   }
 
@@ -63,74 +64,77 @@ const ProjectOverviewPage: React.FC = () => {
   };
 
   return (
-    <IonPage>
-      <IonContent className="ion-padding">
-        <IonText>
-          <h1>{project.name}</h1>
-        </IonText>
+    <IonContent className="app-page-content">
+      <div className="page-header">
+        <h1 className="page-title">{project.name}</h1>
+        <p className="page-subtitle">Projekt-Übersicht</p>
+      </div>
 
-        <IonCard>
-          <IonCardHeader>
-            <IonCardTitle>Projekt-Statistiken</IonCardTitle>
-          </IonCardHeader>
-          <IonCardContent>
-            <IonGrid>
-              <IonRow>
-                <IonCol size="6">
-                  <IonText>
-                    <h3>{stats.total}</h3>
-                    <p>Gesamt-Aufgaben</p>
-                  </IonText>
-                </IonCol>
-                <IonCol size="6">
-                  <IonText>
-                    <h3>{stats.open}</h3>
-                    <p>Offen</p>
-                  </IonText>
-                </IonCol>
-                <IonCol size="6">
-                  <IonText>
-                    <h3>{stats.inProgress}</h3>
-                    <p>In Bearbeitung</p>
-                  </IonText>
-                </IonCol>
-                <IonCol size="6">
-                  <IonText>
-                    <h3>{stats.review}</h3>
-                    <p>Review</p>
-                  </IonText>
-                </IonCol>
-                <IonCol size="6">
-                  <IonText>
-                    <h3>{stats.done}</h3>
-                    <p>Erledigt</p>
-                  </IonText>
-                </IonCol>
-                <IonCol size="6">
-                  <IonText color={stats.urgent > 0 ? 'danger' : 'medium'}>
-                    <h3>{stats.urgent}</h3>
-                    <p>Dringend</p>
-                  </IonText>
-                </IonCol>
-                <IonCol size="6">
-                  <IonText color={stats.overdue > 0 ? 'danger' : 'medium'}>
-                    <h3>{stats.overdue}</h3>
-                    <p>Überfällig</p>
-                  </IonText>
-                </IonCol>
-              </IonRow>
-            </IonGrid>
+      <IonCard className="app-card">
+        <IonCardHeader>
+          <IonCardTitle>Projekt-Statistiken</IonCardTitle>
+        </IonCardHeader>
+        <IonCardContent>
+          <IonGrid>
+            <IonRow>
+              <IonCol size="6">
+                <IonText>
+                  <h3>{stats.total}</h3>
+                  <p>Gesamt-Aufgaben</p>
+                </IonText>
+              </IonCol>
+              <IonCol size="6">
+                <IonText>
+                  <h3>{stats.open}</h3>
+                  <p>Offen</p>
+                </IonText>
+              </IonCol>
+              <IonCol size="6">
+                <IonText>
+                  <h3>{stats.inProgress}</h3>
+                  <p>In Bearbeitung</p>
+                </IonText>
+              </IonCol>
+              <IonCol size="6">
+                <IonText>
+                  <h3>{stats.review}</h3>
+                  <p>Review</p>
+                </IonText>
+              </IonCol>
+              <IonCol size="6">
+                <IonText>
+                  <h3>{stats.done}</h3>
+                  <p>Erledigt</p>
+                </IonText>
+              </IonCol>
+              <IonCol size="6">
+                <IonText color={stats.urgent > 0 ? 'danger' : 'medium'}>
+                  <h3>{stats.urgent}</h3>
+                  <p>Dringend</p>
+                </IonText>
+              </IonCol>
+              <IonCol size="6">
+                <IonText color={stats.overdue > 0 ? 'danger' : 'medium'}>
+                  <h3>{stats.overdue}</h3>
+                  <p>Überfällig</p>
+                </IonText>
+              </IonCol>
+            </IonRow>
+          </IonGrid>
 
-            <IonButton routerLink={`/app/project/${projectId}`} expand="block">
+          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <IonButton routerLink={`/app/project/${projectId}`} expand="block" className="app-button">
+              <IonIcon slot="start" icon={briefcaseOutline} />
               Zum Projekt
             </IonButton>
-            <IonButton routerLink={`/app/project/${projectId}/tasks`} expand="block" fill="outline">
+            <IonButton routerLink={`/app/project/${projectId}/tasks`} expand="block" fill="outline" className="app-button-secondary">
+              <IonIcon slot="start" icon={listOutline} />
               Alle Aufgaben anzeigen
             </IonButton>
-          </IonCardContent>
-        </IonCard>
-      </IonContent>
-    </IonPage>
+          </div>
+        </IonCardContent>
+      </IonCard>
+    </IonContent>
   );
 };
 

@@ -7,10 +7,13 @@ const ResetPasswordRequestPage = lazy(() => import('./pages/Auth/ResetPassword/R
 const ResetPasswordVerifyEmailPage = lazy(() => import('./pages/Auth/ResetPassword/ResetPasswordVerifyEmailPage'));
 const ResetPasswordConfirmPage = lazy(() => import('./pages/Auth/ResetPassword/ResetPasswordConfirmPage'));
 const DashboardPage = lazy(() => import('./pages/App/Dashboard/DashboardPage'));
+const LeadHubPage = lazy(() => import('./pages/App/Lead/LeadHubPage'));
+const LeadTeamTasksPage = lazy(() => import('./pages/App/Lead/LeadTeamTasksPage'));
 const TaskMyListPage = lazy(() => import('./pages/App/Tasks/TaskMyListPage'));
 const TaskAllListPage = lazy(() => import('./pages/App/Tasks/TaskAllListPage'));
 const TaskCreatePage = lazy(() => import('./pages/App/Tasks/TaskCreatePage'));
 const TaskDetailsPage = lazy(() => import('./pages/App/Tasks/TaskDetailsPage'));
+const TaskEditPage = lazy(() => import('./pages/App/Tasks/TaskEditPage'));
 const TaskImagesPage = lazy(() => import('./pages/App/Tasks/TaskImagesPage'));
 const ProjectListPage = lazy(() => import('./pages/App/Projects/ProjectListPage'));
 const ProjectCreatePage = lazy(() => import('./pages/App/Projects/ProjectCreatePage'));
@@ -134,6 +137,23 @@ const routes: RouteDefinition[] = [
         "pageComponent": DashboardPage,
       },
       {
+        "route": "/lead",
+        "pageComponent": LeadHubPage,
+        "protectionRules": {
+          "userPermissionsRequired": {
+            "or": [],
+            "and": ["perm_can_read_all_tasks"]
+          },
+          "ifAccessDeniedRedirectTo": "/app/dashboard"
+        },
+        "pages": [
+          {
+            "route": "/tasks",
+            "pageComponent": LeadTeamTasksPage,
+          }
+        ]
+      },
+      {
         "route": "/tasks",
         "onAccessRedirectTo": "/app/tasks/my",
         "pages": [
@@ -168,9 +188,13 @@ const routes: RouteDefinition[] = [
             },
           },
           {
-            "route": "/:taskId",
+            "route": "/:taskId([0-9a-fA-F-]{36})",
             "pageComponent": TaskDetailsPage,
             "pages": [
+              {
+                "route": "/edit",
+                "pageComponent": TaskEditPage,
+              },
               {
                 "route": "/images",
                 "pageComponent": TaskImagesPage,
@@ -220,7 +244,7 @@ const routes: RouteDefinition[] = [
             },
           },
           {
-            "route": "/:projectId",
+            "route": "/:projectId([0-9a-fA-F-]{36})",
             "pageComponent": ProjectDetailsPage,
             "pages": [
               {

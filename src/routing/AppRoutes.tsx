@@ -1,9 +1,10 @@
 import React from "react";
 import { ComponentType, FC, ReactElement, Suspense } from 'react';
 import { Redirect, Route, RouteComponentProps } from 'react-router-dom';
-import { IonRouterOutlet } from '@ionic/react';
+import { IonRouterOutlet, IonSplitPane } from '@ionic/react';
 import routes, { ProtectionRules, RouteDefinition } from '../routes';
-import { useAuthSession } from './useAuthSession';
+import { useAuthSession, AuthSession } from './useAuthSession';
+import Menu from '../components/Menu';
 
 type RegisteredRoute = {
   path: string;
@@ -100,6 +101,13 @@ const flattenRoutes = (
 
 const registeredRoutes = flattenRoutes(routes);
 
+const getDefaultAppRedirect = (auth: AuthSession): string => {
+  const roles = auth.roles ?? [];
+  if (roles.includes('admin')) return '/app/admin';
+  if (roles.includes('teamlead') || Boolean(auth.permissions?.['perm_can_read_all_tasks'])) return '/app/lead/tasks';
+  return '/app/dashboard';
+};
+
 const renderPage = (
   PageComponent: ComponentType<any>,
   LayoutComponent: ComponentType<any> | undefined,
@@ -109,7 +117,7 @@ const renderPage = (
   return LayoutComponent ? <LayoutComponent>{page}</LayoutComponent> : page;
 };
 
-const evaluateProtection = (rules: ProtectionRules | undefined, auth: ReturnType<typeof useAuthSession>['authSession']) => {
+const evaluateProtection = (rules: ProtectionRules | undefined, auth: AuthSession) => {
   if (!rules) {
     return { allowed: true };
   }
@@ -119,7 +127,7 @@ const evaluateProtection = (rules: ProtectionRules | undefined, auth: ReturnType
   }
 
   if (rules.hasToBeNotAuthenticated && auth.isAuthenticated) {
-    return { allowed: false, redirectTo: rules.ifAccessDeniedRedirectTo ?? '/app/dashboard' };
+    return { allowed: false, redirectTo: getDefaultAppRedirect(auth) };
   }
 
   if (rules.userPermissionsRequired) {
@@ -149,64 +157,80 @@ const evaluateProtection = (rules: ProtectionRules | undefined, auth: ReturnType
 const AppRoutes: FC = () => {
   const { authSession, loading } = useAuthSession();
 
-  if (loading) {
-    return (
-      <IonRouterOutlet id="main" key="loading">
-        <Route path="*" render={() => <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>Lädt...</div>} />
-      </IonRouterOutlet>
-    );
-  }
+  const renderOutlet = (
+    <IonRouterOutlet id="main" key={loading ? 'loading' : 'loaded'}>
+      <Route
+        exact
+        path="/"
+        render={() => <Redirect to={loading ? '/app/dashboard' : (authSession.isAuthenticated ? getDefaultAppRedirect(authSession) : '/auth/login')} />}
+      />
 
-  return (
-    <IonRouterOutlet id="main" key="loaded">
-      <Route exact path="/" render={() => <Redirect to="/app/dashboard" />} />
-      
-      {registeredRoutes.map((route, index) => {
-            if (route.redirectTo) {
+      {loading ? (
+        <Route path="*" render={() => <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>Lädt...</div>} />
+      ) : (
+        [
+          ...registeredRoutes
+            .map((route, index) => {
+              if (route.redirectTo) {
+                return (
+                  <Route
+                    key={`redirect-${route.path}-${index}`}
+                    exact={route.exact}
+                    path={route.path}
+                    render={() => {
+                      const guard = evaluateProtection(route.protectionRules, authSession);
+                      if (!guard.allowed) {
+                        return <Redirect to={guard.redirectTo ?? '/error/403'} />;
+                      }
+
+                      return <Redirect to={route.redirectTo!} />;
+                    }}
+                  />
+                );
+              }
+
+              if (!route.pageComponent) {
+                return null;
+              }
+
               return (
                 <Route
-                  key={`redirect-${route.path}-${index}`}
+                  key={`page-${route.path}-${index}`}
                   exact={route.exact}
                   path={route.path}
-                  render={() => {
+                  render={(routeProps) => {
                     const guard = evaluateProtection(route.protectionRules, authSession);
+
                     if (!guard.allowed) {
                       return <Redirect to={guard.redirectTo ?? '/error/403'} />;
                     }
 
-                    return <Redirect to={route.redirectTo!} />;
+                    return (
+                      <Suspense fallback={<div>Loading Page...</div>}>
+                        {renderPage(route.pageComponent!, route.layout, routeProps)}
+                      </Suspense>
+                    );
                   }}
                 />
               );
+            })
+            .filter((route): route is ReactElement => route !== null),
+          <Route
+            key="fallback-route"
+            render={() =>
+              authSession.isAuthenticated ? <Redirect to={getDefaultAppRedirect(authSession)} /> : <Redirect to="/auth/login" />
             }
-
-            if (!route.pageComponent) {
-              return null;
-            }
-
-            return (
-              <Route
-                key={`page-${route.path}-${index}`}
-                exact={route.exact}
-                path={route.path}
-                render={(routeProps) => {
-                  const guard = evaluateProtection(route.protectionRules, authSession);
-
-                  if (!guard.allowed) {
-                    return <Redirect to={guard.redirectTo ?? '/error/403'} />;
-                  }
-
-                  return (
-                    <Suspense fallback={<div>Loading Page...</div>}>
-                      {renderPage(route.pageComponent!, route.layout, routeProps)}
-                    </Suspense>
-                  );
-                }}
-              />
-            );
-      })}
-      <Route render={() => <Redirect to="/error/404" />} />
+          />
+        ]
+      )}
     </IonRouterOutlet>
+  );
+
+  return (
+    <IonSplitPane contentId="main">
+      <Menu />
+      {renderOutlet}
+    </IonSplitPane>
   );
 };
 

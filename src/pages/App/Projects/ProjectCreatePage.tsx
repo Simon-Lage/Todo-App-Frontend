@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { IonContent, IonPage, IonText, IonInput, IonTextarea, IonButton, IonItem, IonLabel, IonSpinner } from '@ionic/react';
+import { IonContent, IonText, IonInput, IonTextarea, IonButton, IonItem, IonLabel, IonSpinner, IonIcon, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonList } from '@ionic/react';
+import { saveOutline, closeOutline } from 'ionicons/icons';
 import { projectService } from '../../../services/projectService';
+import { getErrorMessage } from '../../../utils/errorUtils';
 
 const ProjectCreatePage: React.FC = () => {
   const history = useHistory();
@@ -25,40 +27,77 @@ const ProjectCreatePage: React.FC = () => {
       history.push(`/app/project/${project.id}`);
     } catch (err) {
       setError('Fehler beim Erstellen des Projekts');
-      console.error(err?.message || err);
+      console.error(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <IonPage>
-      <IonContent className="ion-padding">
-        <IonText>
-          <h1>Neues Projekt erstellen</h1>
-        </IonText>
+    <IonContent className="app-page-content">
+      <div className="page-header">
+        <h1 className="page-title">Neues Projekt</h1>
+        <p className="page-subtitle">Erstellen Sie ein neues Projekt</p>
+      </div>
 
-        {error && <IonText color="danger">{error}</IonText>}
+      {error && (
+        <div className="error-message">{error}</div>
+      )}
 
-        <IonItem>
-          <IonLabel position="stacked">Name *</IonLabel>
-          <IonInput value={name} onIonInput={(e) => setName(e.detail.value!)} placeholder="Projektname" />
-        </IonItem>
+      <IonCard className="app-card">
+        <IonCardHeader>
+          <IonCardTitle>Projektdetails</IonCardTitle>
+        </IonCardHeader>
+        <IonCardContent>
+          <IonList lines="none" style={{ background: 'transparent' }}>
+            <IonItem className="app-form-item">
+              <IonLabel position="stacked" className="app-form-label">Name *</IonLabel>
+              <IonInput
+                value={name}
+                onIonInput={(e) => setName(e.detail.value!)}
+                placeholder="Projektname"
+                className="app-form-input"
+                required
+              />
+            </IonItem>
 
-        <IonItem>
-          <IonLabel position="stacked">Beschreibung</IonLabel>
-          <IonTextarea value={description} onIonInput={(e) => setDescription(e.detail.value!)} placeholder="Projektbeschreibung" />
-        </IonItem>
+            <IonItem className="app-form-item">
+              <IonLabel position="stacked" className="app-form-label">Beschreibung</IonLabel>
+              <IonTextarea
+                value={description}
+                onIonInput={(e) => setDescription(e.detail.value!)}
+                placeholder="Projektbeschreibung"
+                className="app-form-input"
+                rows={4}
+              />
+            </IonItem>
+          </IonList>
+        </IonCardContent>
+      </IonCard>
 
-        <IonButton onClick={handleSubmit} expand="block" disabled={loading}>
-          {loading ? <IonSpinner /> : 'Projekt erstellen'}
+      <div style={{ padding: '0 16px 16px' }}>
+        <IonButton
+          expand="block"
+          onClick={handleSubmit}
+          disabled={loading}
+          className="app-button"
+        >
+          <IonIcon slot="start" icon={saveOutline} />
+          {loading ? 'Erstellt...' : 'Projekt erstellen'}
         </IonButton>
 
-        <IonButton routerLink="/app/project" expand="block" fill="outline">
+        <IonButton
+          routerLink="/app/project"
+          expand="block"
+          fill="outline"
+          className="app-button-secondary"
+          style={{ marginTop: '8px' }}
+        >
+          <IonIcon slot="start" icon={closeOutline} />
           Abbrechen
         </IonButton>
-      </IonContent>
-    </IonPage>
+      </div>
+    </IonContent>
   );
 };
 

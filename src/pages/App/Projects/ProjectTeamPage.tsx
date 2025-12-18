@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { IonContent, IonPage, IonText, IonSpinner, IonList, IonItem, IonLabel, IonCard, IonCardHeader, IonCardTitle, IonCardContent } from '@ionic/react';
+import { IonContent, IonText, IonSpinner, IonList, IonItem, IonLabel, IonCard, IonCardHeader, IonCardTitle, IonCardContent } from '@ionic/react';
 import { projectService } from '../../../services/projectService';
-import { userService } from '../../../services/userService';
+import { userCacheService } from '../../../services/userCacheService';
 import type { TaskSummaryView, UserListView } from '../../../types/api';
+import { getErrorMessage } from '../../../utils/errorUtils';
 
 const ProjectTeamPage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -24,26 +25,11 @@ const ProjectTeamPage: React.FC = () => {
           task.assigned_user_ids.forEach(userId => uniqueUserIds.add(userId));
         });
 
-        const usersMap = new Map<string, UserListView>();
-        for (const userId of uniqueUserIds) {
-          try {
-            const user = await userService.getById(userId);
-            usersMap.set(userId, {
-              id: user.id,
-              name: user.name,
-              email: user.email,
-              active: user.active,
-              created_at: user.created_at,
-              last_login_at: user.last_login_at,
-            });
-          } catch (err) {
-            console.error(`Fehler beim Laden von Benutzer ${userId}`, err);
-          }
-        }
+        const usersMap = await userCacheService.getUsersByIds(Array.from(uniqueUserIds));
         setTeamMembers(usersMap);
       } catch (err) {
         setError('Fehler beim Laden des Teams');
-        console.error(err?.message || err);
+        console.error(getErrorMessage(err));
       } finally {
         setLoading(false);
       }
@@ -54,61 +40,63 @@ const ProjectTeamPage: React.FC = () => {
 
   if (loading) {
     return (
-      <IonPage>
-        <IonContent className="ion-padding ion-text-center">
-          <IonSpinner />
-        </IonContent>
-      </IonPage>
+      <IonContent className="app-page-content">
+        <div className="loading-container">
+          <IonSpinner name="circular" />
+          <p>Lade Team...</p>
+        </div>
+      </IonContent>
     );
   }
 
   if (error) {
     return (
-      <IonPage>
-        <IonContent className="ion-padding">
-          <IonText color="danger">{error}</IonText>
-        </IonContent>
-      </IonPage>
+      <IonContent className="app-page-content">
+        <div className="error-message">{error}</div>
+      </IonContent>
     );
   }
 
   return (
-    <IonPage>
-      <IonContent className="ion-padding">
-        <IonText>
-          <h1>Projekt-Team</h1>
-        </IonText>
+    <IonContent className="app-page-content">
+      <div className="page-header">
+        <h1 className="page-title">Projekt-Team</h1>
+        <p className="page-subtitle">{teamMembers.size} Team-Mitglied{teamMembers.size !== 1 ? 'er' : ''}</p>
+      </div>
 
-        <IonCard>
-          <IonCardHeader>
-            <IonCardTitle>Team-Mitglieder ({teamMembers.size})</IonCardTitle>
-          </IonCardHeader>
-          <IonCardContent>
-            {teamMembers.size === 0 ? (
-              <IonText>Keine Team-Mitglieder gefunden</IonText>
-            ) : (
-              <IonList>
-                {Array.from(teamMembers.values()).map((user) => {
-                  const userTaskCount = tasks.filter(task => 
-                    task.assigned_user_ids.includes(user.id)
-                  ).length;
+      <IonCard className="app-card">
+        <IonCardHeader>
+          <IonCardTitle>Team-Mitglieder</IonCardTitle>
+        </IonCardHeader>
+        <IonCardContent>
+          {teamMembers.size === 0 ? (
+            <div className="empty-state">
+              <p>Keine Team-Mitglieder gefunden</p>
+            </div>
+          ) : (
+            <IonList className="app-list" style={{ padding: '0 16px' }}>
+              {Array.from(teamMembers.values()).map((user) => {
+                const userTaskCount = tasks.filter(task => 
+                  task.assigned_user_ids.includes(user.id)
+                ).length;
 
-                  return (
-                    <IonItem key={user.id}>
-                      <IonLabel>
-                        <h2>{user.name}</h2>
-                        <p>{user.email}</p>
-                        <p>{userTaskCount} Aufgabe(n) zugewiesen</p>
-                      </IonLabel>
-                    </IonItem>
-                  );
-                })}
-              </IonList>
-            )}
-          </IonCardContent>
-        </IonCard>
-      </IonContent>
-    </IonPage>
+                return (
+                  <IonItem key={user.id} className="app-list-item">
+                    <IonLabel>
+                      <h3>{user.name}</h3>
+                      <p>{user.email}</p>
+                      <p style={{ marginTop: '4px', fontSize: '14px', color: 'var(--ion-color-step-600)' }}>
+                        {userTaskCount} Aufgabe{userTaskCount !== 1 ? 'n' : ''} zugewiesen
+                      </p>
+                    </IonLabel>
+                  </IonItem>
+                );
+              })}
+            </IonList>
+          )}
+        </IonCardContent>
+      </IonCard>
+    </IonContent>
   );
 };
 

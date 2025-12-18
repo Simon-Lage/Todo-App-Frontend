@@ -22,18 +22,28 @@ import {
   briefcaseOutline,
   timeOutline,
   ribbonOutline,
+  shieldOutline,
+  peopleOutline,
+  documentTextOutline,
 } from 'ionicons/icons';
 import { userService } from '../../../services/userService';
 import { taskService } from '../../../services/taskService';
 import { projectService } from '../../../services/projectService';
+import { getStatusColor, getPriorityColor, getStatusLabel, getPriorityLabel } from '../../../utils/taskUtils';
 import type { UserView, TaskSummaryView, ProjectSummaryView } from '../../../types/api';
 import './DashboardPage.css';
+import { useAuthSession } from '../../../routing/useAuthSession';
+import { sortTasksByStatusAndPriority } from '../../../utils/taskSort';
+import { getErrorMessage } from '../../../utils/errorUtils';
 
 const DashboardPage: React.FC = () => {
+  const { authSession } = useAuthSession();
+  const isAdmin = (authSession.roles ?? []).includes('admin');
   const [user, setUser] = useState<UserView | null>(null);
   const [permissions, setPermissions] = useState<Record<string, boolean>>({});
   const [myTasks, setMyTasks] = useState<TaskSummaryView[]>([]);
   const [myProjects, setMyProjects] = useState<ProjectSummaryView[]>([]);
+  const [dashboardStats, setDashboardStats] = useState<{ my_tasks_total: number; my_tasks_in_progress: number; my_tasks_done_total: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,20 +51,29 @@ const DashboardPage: React.FC = () => {
     const loadDashboard = async () => {
       try {
         setLoading(true);
+        if (isAdmin) {
+          const { user: currentUser, permissions: userPermissions } = await userService.getCurrentUser();
+          setUser(currentUser);
+          setPermissions(userPermissions);
+          setLoading(false);
+          return;
+        }
+
         const { user: currentUser, permissions: userPermissions } = await userService.getCurrentUser();
         setUser(currentUser);
-        
-        // userPermissions ist bereits ein Record<string, boolean>
         setPermissions(userPermissions);
 
-        const tasksResponse = await taskService.list({ assigned_to_user_id: currentUser.id }, { limit: 5 });
-        setMyTasks(tasksResponse.items);
-
-        const projectsResponse = await projectService.list({ created_by_user_id: currentUser.id }, { limit: 5 });
+        const [tasksResponse, projectsResponse, statsResponse] = await Promise.all([
+          taskService.list({ assigned_to_user_id: currentUser.id }, { limit: 5 }),
+          projectService.listMy({}, { limit: 5 }),
+          taskService.getDashboardStats(),
+        ]);
+        setMyTasks(sortTasksByStatusAndPriority(tasksResponse.items));
         setMyProjects(projectsResponse.items);
+        setDashboardStats(statsResponse);
       } catch (err) {
         setError(`Fehler beim Laden des Dashboards: ${err instanceof Error ? err.message : 'Unbekannter Fehler'}`);
-        console.error('[Dashboard] Error loading dashboard:', err?.message || err);
+        console.error('[Dashboard] Error loading dashboard:', getErrorMessage(err));
       } finally {
         setLoading(false);
       }
@@ -64,29 +83,12 @@ const DashboardPage: React.FC = () => {
   }, []);
 
   const getTaskStatusColor = (status: string) => {
-    switch (status) {
-      case 'open': return 'primary';
-      case 'in_progress': return 'warning';
-      case 'review': return 'tertiary';
-      case 'done': return 'success';
-      case 'cancelled': return 'medium';
-      default: return 'medium';
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return 'danger';
-      case 'high': return 'warning';
-      case 'medium': return 'primary';
-      case 'low': return 'medium';
-      default: return 'medium';
-    }
+    return getStatusColor(status as any);
   };
 
   if (loading) {
     return (
-      <IonContent className="ion-padding ion-text-center">
+      <IonContent className="app-page-content ion-padding ion-text-center">
         <div style={{ marginTop: '50%' }}>
           <IonSpinner name="circular" />
           <p>Lädt Dashboard...</p>
@@ -97,7 +99,7 @@ const DashboardPage: React.FC = () => {
 
   if (error) {
     return (
-      <IonContent className="ion-padding">
+      <IonContent className="app-page-content ion-padding">
         <IonCard color="danger">
           <IonCardContent>
             <IonText color="light">{error}</IonText>
@@ -107,8 +109,66 @@ const DashboardPage: React.FC = () => {
     );
   }
 
+  if (isAdmin) {
+    return (
+      <IonContent className="app-page-content">
+        <div className="page-header">
+          <h1 className="page-title">Admin-Übersicht</h1>
+          <p className="page-subtitle">Schnellzugriff auf Benutzer, Rollen und Logs</p>
+        </div>
+
+        <IonGrid style={{ padding: '0 16px' }}>
+          <IonRow>
+            <IonCol size="12" sizeMd="4">
+              <IonCard className="app-card">
+                <IonCardHeader>
+                  <IonCardTitle>
+                    <IonIcon icon={peopleOutline} style={{ marginRight: 8 }} />
+                    Benutzer
+                  </IonCardTitle>
+                </IonCardHeader>
+                <IonCardContent>
+                  <p>Verwalten Sie Nutzer und deren Status.</p>
+                  <IonButton routerLink="/app/admin/users" expand="block">Zu den Benutzern</IonButton>
+                </IonCardContent>
+              </IonCard>
+            </IonCol>
+            <IonCol size="12" sizeMd="4">
+              <IonCard className="app-card">
+                <IonCardHeader>
+                  <IonCardTitle>
+                    <IonIcon icon={shieldOutline} style={{ marginRight: 8 }} />
+                    Rollen
+                  </IonCardTitle>
+                </IonCardHeader>
+                <IonCardContent>
+                  <p>Rollen und Berechtigungen pflegen.</p>
+                  <IonButton routerLink="/app/admin/roles" expand="block">Zu den Rollen</IonButton>
+                </IonCardContent>
+              </IonCard>
+            </IonCol>
+            <IonCol size="12" sizeMd="4">
+              <IonCard className="app-card">
+                <IonCardHeader>
+                  <IonCardTitle>
+                    <IonIcon icon={documentTextOutline} style={{ marginRight: 8 }} />
+                    Logs
+                  </IonCardTitle>
+                </IonCardHeader>
+                <IonCardContent>
+                  <p>System-Logs einsehen.</p>
+                  <IonButton routerLink="/app/admin/logs" expand="block">Logs ansehen</IonButton>
+                </IonCardContent>
+              </IonCard>
+            </IonCol>
+          </IonRow>
+        </IonGrid>
+      </IonContent>
+    );
+  }
+
   return (
-    <IonContent className="dashboard-content">
+    <IonContent className="app-page-content dashboard-content">
       {/* Welcome Header */}
       <div className="dashboard-header">
         <h1 className="dashboard-welcome">Willkommen zurück, {user?.name}!</h1>
@@ -122,7 +182,7 @@ const DashboardPage: React.FC = () => {
             <IonCard className="stat-card">
               <IonCardContent className="stat-card-content">
                 <IonIcon icon={checkmarkCircleOutline} className="stat-icon stat-icon-primary" />
-                <div className="stat-value">{myTasks.length}</div>
+                <div className="stat-value">{dashboardStats?.my_tasks_total ?? myTasks.length}</div>
                 <div className="stat-label">Meine Aufgaben</div>
               </IonCardContent>
             </IonCard>
@@ -142,7 +202,7 @@ const DashboardPage: React.FC = () => {
             <IonCard className="stat-card">
               <IonCardContent className="stat-card-content">
                 <IonIcon icon={timeOutline} className="stat-icon stat-icon-warning" />
-                <div className="stat-value">{myTasks.filter(t => t.status === 'in_progress').length}</div>
+                <div className="stat-value">{dashboardStats?.my_tasks_in_progress ?? myTasks.filter(t => t.status === 'in_progress').length}</div>
                 <div className="stat-label">In Bearbeitung</div>
               </IonCardContent>
             </IonCard>
@@ -152,7 +212,7 @@ const DashboardPage: React.FC = () => {
             <IonCard className="stat-card">
               <IonCardContent className="stat-card-content">
                 <IonIcon icon={ribbonOutline} className="stat-icon stat-icon-tertiary" />
-                <div className="stat-value">{myTasks.filter(t => t.status === 'done').length}</div>
+                <div className="stat-value">{dashboardStats?.my_tasks_done_total ?? myTasks.filter(t => t.status === 'done').length}</div>
                 <div className="stat-label">Erledigt</div>
               </IonCardContent>
             </IonCard>
@@ -188,10 +248,10 @@ const DashboardPage: React.FC = () => {
                     <h3 className="task-title">{task.title}</h3>
                     <p className="task-meta">
                       <IonChip color={getTaskStatusColor(task.status)} className="task-chip">
-                        {task.status}
+                        {getStatusLabel(task.status)}
                       </IonChip>
                       <IonChip color={getPriorityColor(task.priority)} className="task-chip">
-                        {task.priority}
+                        {getPriorityLabel(task.priority)}
                       </IonChip>
                     </p>
                   </IonLabel>

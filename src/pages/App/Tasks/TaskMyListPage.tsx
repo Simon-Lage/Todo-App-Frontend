@@ -18,59 +18,70 @@ import {
   IonSegment,
   IonSegmentButton,
   IonBadge,
+  IonText,
 } from '@ionic/react';
+import { personOutline } from 'ionicons/icons';
 import { addOutline, filterOutline } from 'ionicons/icons';
 import { taskService } from '../../../services/taskService';
 import { userService } from '../../../services/userService';
+import { getStatusColor, getPriorityColor, getStatusLabel, getPriorityLabel } from '../../../utils/taskUtils';
+import PaginationControls from '../../../components/PaginationControls';
 import type { TaskSummaryView, TaskStatus } from '../../../types/api';
+import { useAuthSession } from '../../../routing/useAuthSession';
+import AssigneeAvatarGroup from '../../../components/AssigneeAvatarGroup';
+import { getErrorMessage } from '../../../utils/errorUtils';
 
 const TaskMyListPage: React.FC = () => {
+  const { authSession } = useAuthSession();
   const [tasks, setTasks] = useState<TaskSummaryView[]>([]);
-  const [filteredTasks, setFilteredTasks] = useState<TaskSummaryView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('in_progress');
+  const [offset, setOffset] = useState(0);
+  const [total, setTotal] = useState(0);
+  const limit = 20;
+  const canCreate = Boolean(authSession.permissions?.['perm_can_create_tasks']);
 
   useEffect(() => {
     loadTasks();
-  }, []);
+  }, [offset, statusFilter, searchText]);
 
   useEffect(() => {
-    filterTasks();
-  }, [tasks, searchText, statusFilter]);
+    if (offset !== 0) {
+      setOffset(0);
+    }
+  }, [statusFilter, searchText]);
 
   const loadTasks = async () => {
     try {
       setLoading(true);
       const { user } = await userService.getCurrentUser();
-      const response = await taskService.list({ assigned_to_user_id: user.id }, { limit: 100 });
+      const filters: any = { assigned_to_user_id: user.id };
+      
+      if (statusFilter !== 'all') {
+        filters.status = statusFilter as TaskStatus;
+      }
+      
+      if (searchText) {
+        filters.q = searchText;
+      }
+
+      const response = await taskService.list(filters, { offset, limit, sort_by: 'status', direction: 'desc' });
       const validUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
-      setTasks(response.items.filter((t) => t.id && validUuid.test(t.id)));
+      const validTasks = response.items.filter((t) => t.id && validUuid.test(t.id));
+      setTasks(validTasks);
+      setTotal(response.total);
     } catch (err) {
       setError('Fehler beim Laden der Aufgaben');
-      console.error(err?.message || err);
+      console.error(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
   };
 
-  const filterTasks = () => {
-    let filtered = tasks;
-
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(t => t.status === statusFilter);
-    }
-
-    if (searchText) {
-      const search = searchText.toLowerCase();
-      filtered = filtered.filter(t => 
-        t.title.toLowerCase().includes(search) ||
-        t.description?.toLowerCase().includes(search)
-      );
-    }
-
-    setFilteredTasks(filtered);
+  const handlePageChange = (newOffset: number) => {
+    setOffset(newOffset);
   };
 
   const handleRefresh = async (event: CustomEvent) => {
@@ -78,47 +89,6 @@ const TaskMyListPage: React.FC = () => {
     event.detail.complete();
   };
 
-  const getStatusColor = (status: TaskStatus) => {
-    switch (status) {
-      case 'open': return 'primary';
-      case 'in_progress': return 'warning';
-      case 'review': return 'tertiary';
-      case 'done': return 'success';
-      case 'cancelled': return 'medium';
-      default: return 'medium';
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return 'danger';
-      case 'high': return 'warning';
-      case 'medium': return 'primary';
-      case 'low': return 'medium';
-      default: return 'medium';
-    }
-  };
-
-  const getStatusLabel = (status: TaskStatus) => {
-    switch (status) {
-      case 'open': return 'Offen';
-      case 'in_progress': return 'In Arbeit';
-      case 'review': return 'Review';
-      case 'done': return 'Erledigt';
-      case 'cancelled': return 'Abgebrochen';
-      default: return status;
-    }
-  };
-
-  const getPriorityLabel = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return 'Dringend';
-      case 'high': return 'Hoch';
-      case 'medium': return 'Mittel';
-      case 'low': return 'Niedrig';
-      default: return priority;
-    }
-  };
 
   if (loading) {
     return (
@@ -147,7 +117,7 @@ const TaskMyListPage: React.FC = () => {
 
       <div className="page-header">
         <h1 className="page-title">Meine Aufgaben</h1>
-        <p className="page-subtitle">{tasks.length} Aufgabe{tasks.length !== 1 ? 'n' : ''} zugewiesen</p>
+        <p className="page-subtitle">{total} Aufgabe{total !== 1 ? 'n' : ''} zugewiesen</p>
       </div>
 
       <div style={{ padding: '0 16px 16px' }}>
@@ -156,6 +126,7 @@ const TaskMyListPage: React.FC = () => {
           onIonInput={(e) => setSearchText(e.detail.value!)}
           placeholder="Aufgaben durchsuchen..."
           className="app-searchbar"
+          debounce={300}
         />
 
         <IonSegment 
@@ -163,9 +134,6 @@ const TaskMyListPage: React.FC = () => {
           onIonChange={(e) => setStatusFilter(e.detail.value as string)}
           style={{ marginTop: '12px' }}
         >
-          <IonSegmentButton value="all">
-            <IonLabel>Alle</IonLabel>
-          </IonSegmentButton>
           <IonSegmentButton value="open">
             <IonLabel>Offen</IonLabel>
           </IonSegmentButton>
@@ -175,49 +143,71 @@ const TaskMyListPage: React.FC = () => {
           <IonSegmentButton value="done">
             <IonLabel>Erledigt</IonLabel>
           </IonSegmentButton>
+          <IonSegmentButton value="all">
+            <IonLabel>Alle</IonLabel>
+          </IonSegmentButton>
         </IonSegment>
       </div>
 
-      {filteredTasks.length === 0 ? (
+      {tasks.length === 0 ? (
         <div className="empty-state">
           <p>Keine Aufgaben gefunden</p>
         </div>
       ) : (
-        <IonList className="app-list" style={{ padding: '0 16px' }}>
-          {filteredTasks.map((task) => (
-            <IonItem 
-              key={task.id} 
-              routerLink={`/app/tasks/${task.id}`}
-              button
-              detail={false}
-              className="app-list-item"
-            >
-              <IonLabel>
-                <h3>{task.title}</h3>
-                <p style={{ marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  <IonChip color={getStatusColor(task.status)} className="app-chip">
-                    {getStatusLabel(task.status)}
-                  </IonChip>
-                  <IonChip color={getPriorityColor(task.priority)} className="app-chip">
-                    {getPriorityLabel(task.priority)}
-                  </IonChip>
-                </p>
-              </IonLabel>
-            </IonItem>
-          ))}
-        </IonList>
+        <>
+          <IonList className="app-list" style={{ padding: '0 16px' }}>
+            {tasks.map((task) => (
+              <IonItem 
+                key={task.id} 
+                routerLink={`/app/tasks/${task.id}`}
+                button
+                detail={false}
+                className={`app-list-item task-card status-${task.status}`}
+              >
+                <IonLabel>
+                  <h3>{task.title}</h3>
+                  <div style={{ marginTop: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <IonChip color={getStatusColor(task.status)} className="app-chip">
+                      {getStatusLabel(task.status)}
+                    </IonChip>
+                    <IonChip color={getPriorityColor(task.priority)} className="app-chip">
+                      {getPriorityLabel(task.priority)}
+                    </IonChip>
+                    {task.assigned_user_ids.length > 0 && (
+                      <IonText color="medium" style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <IonIcon icon={personOutline} style={{ fontSize: '14px' }} />
+                        {task.assigned_user_ids.length === 1
+                          ? (task.assigned_users?.[0]?.name || 'Unbekannt')
+                          : `${task.assigned_user_ids.length} Personen`}
+                        <AssigneeAvatarGroup users={task.assigned_users} />
+                      </IonText>
+                    )}
+                  </div>
+                </IonLabel>
+              </IonItem>
+            ))}
+          </IonList>
+          <PaginationControls
+            offset={offset}
+            limit={limit}
+            total={total}
+            onPageChange={handlePageChange}
+          />
+        </>
       )}
 
-      <div style={{ padding: '16px' }}>
-        <IonButton 
-          routerLink="/app/tasks/create" 
-          expand="block"
-          className="app-button"
-        >
-          <IonIcon slot="start" icon={addOutline} />
-          Neue Aufgabe erstellen
-        </IonButton>
-      </div>
+      {canCreate && (
+        <div style={{ padding: '16px' }}>
+          <IonButton 
+            routerLink="/app/tasks/create" 
+            expand="block"
+            className="app-button"
+          >
+            <IonIcon slot="start" icon={addOutline} />
+            Neue Aufgabe erstellen
+          </IonButton>
+        </div>
+      )}
     </IonContent>
   );
 };

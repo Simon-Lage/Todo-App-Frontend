@@ -1,14 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { IonContent, IonPage, IonText, IonSpinner, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonButton, IonItem, IonLabel } from '@ionic/react';
+import { IonContent, IonSpinner, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonButton, IonItem, IonLabel, IonIcon, IonList } from '@ionic/react';
+import { arrowBackOutline, documentTextOutline } from 'ionicons/icons';
 import { logService } from '../../../../services/logService';
 import type { LogView } from '../../../../types/api';
+import { getErrorMessage } from '../../../../utils/errorUtils';
 
 const AdminLogDetailsPage: React.FC = () => {
   const { logId } = useParams<{ logId: string }>();
   const [log, setLog] = useState<LogView | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const formatDateTime = (value: string | null | undefined): string => {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString('de-DE');
+  };
 
   useEffect(() => {
     const loadLog = async () => {
@@ -24,7 +33,7 @@ const AdminLogDetailsPage: React.FC = () => {
         setLog(logData);
       } catch (err) {
         setError('Fehler beim Laden des Logs');
-        console.error(err?.message || err);
+        console.error(getErrorMessage(err));
       } finally {
         setLoading(false);
       }
@@ -35,62 +44,74 @@ const AdminLogDetailsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <IonPage>
-        <IonContent className="ion-padding ion-text-center">
-          <IonSpinner />
-        </IonContent>
-      </IonPage>
+      <IonContent className="app-page-content">
+        <div className="loading-container">
+          <IonSpinner name="circular" />
+          <p>Lade Log...</p>
+        </div>
+      </IonContent>
     );
   }
 
   if (error || !log) {
     return (
-      <IonPage>
-        <IonContent className="ion-padding">
-          <IonText color="danger">{error || 'Log nicht gefunden'}</IonText>
-        </IonContent>
-      </IonPage>
+      <IonContent className="app-page-content">
+        <div className="error-message">{error || 'Log nicht gefunden'}</div>
+      </IonContent>
     );
   }
 
-  return (
-    <IonPage>
-      <IonContent className="ion-padding">
-        <IonText>
-          <h1>Log-Details</h1>
-        </IonText>
+	  return (
+    <IonContent className="app-page-content">
+      <div className="page-header">
+        <h1 className="page-title">Log-Details</h1>
+        <p className="page-subtitle">{log.action}</p>
+      </div>
 
-        <IonCard>
-          <IonCardHeader>
-            <IonCardTitle>{log.event}</IonCardTitle>
-          </IonCardHeader>
-          <IonCardContent>
-            <IonItem>
-              <IonLabel>Zeitpunkt</IonLabel>
-              <IonText>{new Date(log.created_at).toLocaleString()}</IonText>
+      <IonCard className="app-card">
+        <IonCardHeader>
+          <IonCardTitle>
+            <IonIcon icon={documentTextOutline} style={{ marginRight: '8px' }} />
+            {log.action}
+          </IonCardTitle>
+        </IonCardHeader>
+        <IonCardContent>
+          <IonList lines="none" style={{ background: 'transparent' }}>
+            <IonItem className="app-form-item">
+              <IonLabel>
+                <h3>Zeitpunkt</h3>
+                <p>{formatDateTime(log.performed_at)}</p>
+              </IonLabel>
             </IonItem>
 
-            {log.actor_user_id && (
-              <IonItem>
-                <IonLabel>Benutzer-ID</IonLabel>
-                <IonText>{log.actor_user_id}</IonText>
+            {log.performed_by_user_id && (
+              <IonItem className="app-form-item">
+                <IonLabel>
+                  <h3>Benutzer-ID</h3>
+                  <p>{log.performed_by_user_id}</p>
+                </IonLabel>
               </IonItem>
             )}
 
-            <IonItem>
-              <IonLabel>Kontext</IonLabel>
-              <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px' }}>
-                {JSON.stringify(log.context, null, 2)}
-              </pre>
+            <IonItem className="app-form-item">
+              <IonLabel>
+                <h3>Details</h3>
+                <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px', marginTop: '8px', padding: '8px', backgroundColor: 'var(--ion-color-light)', borderRadius: '4px', color: 'var(--ion-color-dark)' }}>
+                  {JSON.stringify(log.details, null, 2)}
+                </pre>
+              </IonLabel>
             </IonItem>
+          </IonList>
 
-            <IonButton routerLink="/app/admin/logs" expand="block" fill="outline">
+          <div style={{ marginTop: '16px' }}>
+            <IonButton routerLink="/app/admin/logs" expand="block" fill="outline" className="app-button-secondary">
+              <IonIcon slot="start" icon={arrowBackOutline} />
               Zurück zur Liste
             </IonButton>
-          </IonCardContent>
-        </IonCard>
-      </IonContent>
-    </IonPage>
+          </div>
+        </IonCardContent>
+      </IonCard>
+    </IonContent>
   );
 };
 

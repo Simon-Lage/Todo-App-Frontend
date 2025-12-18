@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { IonContent, IonPage, IonText, IonSpinner, IonList, IonItem, IonLabel, IonButton } from '@ionic/react';
+import { IonContent, IonText, IonSpinner, IonButton, IonList, IonItem, IonLabel, IonIcon } from '@ionic/react';
+import { addOutline } from 'ionicons/icons';
 import { roleService } from '../../../../services/roleService';
 import type { RoleView } from '../../../../types/api';
+import { getRoleLabel } from '../../../../config/roleLabels';
+import { getErrorMessage } from '../../../../utils/errorUtils';
 
 const AdminRoleListPage: React.FC = () => {
   const [roles, setRoles] = useState<RoleView[]>([]);
@@ -16,7 +19,7 @@ const AdminRoleListPage: React.FC = () => {
         setRoles(response.items);
       } catch (err) {
         setError('Fehler beim Laden der Rollen');
-        console.error(err?.message || err);
+        console.error(getErrorMessage(err));
       } finally {
         setLoading(false);
       }
@@ -27,53 +30,61 @@ const AdminRoleListPage: React.FC = () => {
 
   if (loading) {
     return (
-      <IonPage>
-        <IonContent className="ion-padding ion-text-center">
-          <IonSpinner />
-        </IonContent>
-      </IonPage>
+      <IonContent className="app-page-content">
+        <div className="loading-container">
+          <IonSpinner name="circular" />
+          <p>Lade Rollen...</p>
+        </div>
+      </IonContent>
     );
   }
 
   if (error) {
     return (
-      <IonPage>
-        <IonContent className="ion-padding">
-          <IonText color="danger">{error}</IonText>
-        </IonContent>
-      </IonPage>
+      <IonContent className="app-page-content">
+        <div className="error-message">{error}</div>
+      </IonContent>
     );
   }
 
   return (
-    <IonPage>
-      <IonContent className="ion-padding">
-        <IonText>
-          <h1>Rollenverwaltung</h1>
-        </IonText>
+    <IonContent className="app-page-content">
+      <div className="page-header">
+        <h1 className="page-title">Rollenverwaltung</h1>
+        <p className="page-subtitle">{roles.length} Rolle{roles.length !== 1 ? 'n' : ''} verfügbar</p>
+      </div>
 
-        {roles.length === 0 ? (
-          <IonText>Keine Rollen gefunden</IonText>
-        ) : (
-          <IonList>
-            {roles.map((role) => (
-              <IonItem key={role.id} routerLink={`/app/admin/roles/${role.id}`}>
-                <IonLabel>
-                  <h2>{role.name}</h2>
-                  <p>Rolle mit verschiedenen Berechtigungen</p>
-                </IonLabel>
-              </IonItem>
-            ))}
-          </IonList>
-        )}
+      {roles.length === 0 ? (
+        <div className="empty-state">
+          <p>Keine Rollen gefunden</p>
+        </div>
+      ) : (
+        <IonList className="app-list" style={{ padding: '0 16px' }}>
+          {roles.map((role) => (
+            <IonItem
+              key={role.id}
+              routerLink={`/app/admin/roles/${role.id}`}
+              button
+              detail={false}
+              className="app-list-item"
+              >
+              <IonLabel>
+                <h3>{getRoleLabel(role.name) ?? role.id}</h3>
+                <p style={{ fontSize: '12px', color: 'var(--ion-color-medium)' }}>{role.id}</p>
+              </IonLabel>
+            </IonItem>
+          ))}
+        </IonList>
+      )}
 
-        <IonButton routerLink="/app/admin/roles/create" expand="block">
+      <div style={{ padding: '16px' }}>
+        <IonButton routerLink="/app/admin/roles/create" expand="block" className="app-button">
+          <IonIcon slot="start" icon={addOutline} />
           Neue Rolle erstellen
         </IonButton>
-      </IonContent>
-    </IonPage>
+      </div>
+    </IonContent>
   );
 };
 
 export default AdminRoleListPage;
-

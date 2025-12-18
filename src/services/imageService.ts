@@ -1,7 +1,8 @@
 import { sessionStore } from './sessionStore';
+import { API_BASE_URL } from '../config/apiConfig';
 import type { ImageView, SingleResponse } from '../types/api';
 
-const API_BASE = '/api';
+const API_BASE = API_BASE_URL;
 
 type UploadParams = {
   file: File;
@@ -80,12 +81,12 @@ const list = async (filter: { userId?: string; projectId?: string; taskId?: stri
   });
 
   if (!response.ok) {
-    throw new Error(`Image list failed with status ${response.status}`);
+    const detail = await response.text().catch(() => '');
+    throw new Error(`Image list failed with status ${response.status}${detail ? `: ${detail}` : ''}`);
   }
 
   const result = (await response.json()) as SingleResponse<{ items: ImageView[]; total: number }>;
   return result.data.items;
-};
 };
 
 const update = async (imageId: string, payload: UpdateImagePayload): Promise<ImageView> => {

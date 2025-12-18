@@ -4,6 +4,7 @@ import { IonReactRouter } from '@ionic/react-router';
 import Menu from './components/Menu';
 import AppRoutes from './routing/AppRoutes';
 import { AuthSessionProvider } from './routing/useAuthSession';
+import ToastHost from './components/ToastHost';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -40,6 +41,7 @@ const App: React.FC = () => {
   return (
     <AuthSessionProvider>
       <IonApp>
+        <ToastHost />
         <IonReactRouter>
           <AppRoutes />
         </IonReactRouter>

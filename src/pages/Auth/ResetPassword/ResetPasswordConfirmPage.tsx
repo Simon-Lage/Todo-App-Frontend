@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { IonText, IonInput, IonButton, IonItem, IonLabel, IonList, IonSpinner, IonIcon } from '@ionic/react';
-import { closeCircleOutline } from 'ionicons/icons';
+import { closeCircleOutline, eyeOutline, eyeOffOutline } from 'ionicons/icons';
 import { apiClient } from '../../../services/apiClient';
 import { authService } from '../../../services/authService';
+import type { TokenPair } from '../../../services/sessionStore';
+import { getErrorMessage } from '../../../utils/errorUtils';
 
 const ResetPasswordConfirmPage: React.FC = () => {
   const history = useHistory();
   const location = useLocation();
   const [newPassword, setNewPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -45,7 +49,7 @@ const ResetPasswordConfirmPage: React.FC = () => {
 
     try {
       setLoading(true);
-      const response = await apiClient.request<{ data: { tokens: { access_token: string; refresh_token: string }; user: unknown; permissions: Record<string, boolean> } }>({
+      const response = await apiClient.request<{ data: { tokens: TokenPair; user: unknown; permissions: Record<string, boolean> } }>({
         path: '/api/auth/reset-password/confirm',
         method: 'POST',
         body: { token, new_password: newPassword },
@@ -62,6 +66,7 @@ const ResetPasswordConfirmPage: React.FC = () => {
       history.push('/app/dashboard');
     } catch (err) {
       setError('Passwort-Reset fehlgeschlagen. Token möglicherweise abgelaufen.');
+      console.error(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -118,38 +123,84 @@ const ResetPasswordConfirmPage: React.FC = () => {
             <IonLabel position="stacked" style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>
               Neues Passwort * (min. 12 Zeichen)
             </IonLabel>
-            <IonInput
-              type="password"
-              value={newPassword}
-              onIonInput={(e) => setNewPassword(e.detail.value!)}
-              required
-              style={{ 
-                '--background': '#f5f5f5',
-                '--padding-start': '12px',
-                '--padding-end': '12px',
-                'borderRadius': '8px',
-                'marginTop': '4px'
-              }}
-            />
+            <div style={{ position: 'relative', width: '100%' }}>
+              <IonInput
+                type={showPassword ? 'text' : 'password'}
+                value={newPassword}
+                onIonInput={(e) => setNewPassword(e.detail.value!)}
+                required
+                style={{ 
+                  '--background': '#f5f5f5',
+                  '--padding-start': '12px',
+                  '--padding-end': '48px',
+                  'borderRadius': '8px',
+                  'marginTop': '4px'
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--ion-color-step-600)',
+                }}
+                aria-label={showPassword ? 'Passwort verbergen' : 'Passwort anzeigen'}
+              >
+                <IonIcon icon={showPassword ? eyeOffOutline : eyeOutline} style={{ fontSize: '20px' }} />
+              </button>
+            </div>
           </IonItem>
 
           <IonItem lines="none" style={{ '--background': 'transparent', marginBottom: '8px' }}>
             <IonLabel position="stacked" style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>
               Passwort bestätigen *
             </IonLabel>
-            <IonInput
-              type="password"
-              value={passwordConfirm}
-              onIonInput={(e) => setPasswordConfirm(e.detail.value!)}
-              required
-              style={{ 
-                '--background': '#f5f5f5',
-                '--padding-start': '12px',
-                '--padding-end': '12px',
-                'borderRadius': '8px',
-                'marginTop': '4px'
-              }}
-            />
+            <div style={{ position: 'relative', width: '100%' }}>
+              <IonInput
+                type={showPasswordConfirm ? 'text' : 'password'}
+                value={passwordConfirm}
+                onIonInput={(e) => setPasswordConfirm(e.detail.value!)}
+                required
+                style={{ 
+                  '--background': '#f5f5f5',
+                  '--padding-start': '12px',
+                  '--padding-end': '48px',
+                  'borderRadius': '8px',
+                  'marginTop': '4px'
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPasswordConfirm(!showPasswordConfirm)}
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--ion-color-step-600)',
+                }}
+                aria-label={showPasswordConfirm ? 'Passwort verbergen' : 'Passwort anzeigen'}
+              >
+                <IonIcon icon={showPasswordConfirm ? eyeOffOutline : eyeOutline} style={{ fontSize: '20px' }} />
+              </button>
+            </div>
           </IonItem>
         </IonList>
 

@@ -57,9 +57,10 @@
 }
 
 /* Input Fields - bessere Sichtbarkeit */
-.auth-layout-card ion-input {
-  --color: var(--ion-color-dark);
-  --placeholder-color: var(--ion-color-step-500);
+.auth-layout-card ion-input,
+.auth-layout-card ion-textarea {
+  --color: var(--ion-color-light-contrast);
+  --placeholder-color: var(--ion-color-light-contrast);
   --background: var(--ion-color-light);
   --padding-start: 12px;
   --padding-end: 12px;

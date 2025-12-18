@@ -1,6 +1,12 @@
 export type TaskStatus = 'open' | 'in_progress' | 'review' | 'done' | 'cancelled';
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
+export type UserPreview = {
+  id: string;
+  name: string;
+  profile_image_id?: string | null;
+};
+
 export type TaskView = {
   id: string;
   title: string;
@@ -9,7 +15,11 @@ export type TaskView = {
   priority: TaskPriority;
   due_date: string | null;
   created_by_user_id: string;
+  reviewer_user_id?: string | null;
+  finalized_by_user_id?: string | null;
+  finalized_at?: string | null;
   assigned_user_ids: string[];
+  assigned_users?: UserPreview[];
   project_id: string;
   created_at: string;
   updated_at: string;
@@ -21,10 +31,18 @@ export type TaskSummaryView = {
   status: TaskStatus;
   priority: TaskPriority;
   due_date: string | null;
+  reviewer_user_id?: string | null;
+  finalized_by_user_id?: string | null;
+  finalized_at?: string | null;
   created_at: string;
   updated_at: string;
   project_id: string;
   assigned_user_ids: string[];
+  assigned_users?: UserPreview[];
+};
+
+export type TaskBeautifyResponse = {
+  suggestion: string;
 };
 
 export type ProjectView = {
@@ -33,6 +51,17 @@ export type ProjectView = {
   description: string | null;
   created_by_user_id: string;
   created_at: string;
+  teamlead_user_ids?: string[];
+  is_completed?: boolean;
+  completed_at?: string | null;
+  completed_by_user_id?: string | null;
+};
+
+export type ProjectStatsView = {
+  tasks: {
+    total: number;
+    by_status: Record<TaskStatus, number>;
+  };
 };
 
 export type ProjectSummaryView = {
@@ -40,6 +69,8 @@ export type ProjectSummaryView = {
   name: string;
   description: string | null;
   created_at: string;
+  teamlead_user_ids?: string[];
+  is_completed?: boolean;
 };
 
 export type UserView = {
@@ -52,6 +83,7 @@ export type UserView = {
   temporary_password_created_at: string | null;
   last_login_at: string | null;
   profile_image_id?: string | null;
+  roles: { id: string; name: string | null }[];
 };
 
 export type UserListView = {
@@ -61,6 +93,8 @@ export type UserListView = {
   active: boolean;
   created_at: string;
   last_login_at: string | null;
+  profile_image_id?: string | null;
+  roles: { id: string; name: string | null }[];
 };
 
 export type RoleView = {
@@ -84,10 +118,10 @@ export type ImageView = {
 
 export type LogView = {
   id: string;
-  event: string;
-  actor_user_id: string | null;
-  context: Record<string, unknown>;
-  created_at: string;
+  action: string;
+  performed_by_user_id: string | null;
+  performed_at: string;
+  details: Record<string, unknown> | null;
 };
 
 export type PermissionKey = string;

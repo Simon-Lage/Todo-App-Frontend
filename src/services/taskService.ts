@@ -9,6 +9,7 @@ import type {
   CreateTaskPayload,
   UpdateTaskPayload,
   TaskStatus,
+  TaskBeautifyResponse,
 } from '../types/api';
 
 const buildQueryString = (filters: TaskFilters & PaginationParams): string => {
@@ -34,7 +35,14 @@ const list = async (
   filters: TaskFilters = {},
   pagination: PaginationParams = {}
 ): Promise<PaginatedResponse<TaskSummaryView>> => {
-  const query = buildQueryString({ ...filters, ...pagination });
+  const mergedPagination: PaginationParams = {
+    sort_by: pagination.sort_by ?? 'status',
+    direction: pagination.direction ?? 'desc',
+    offset: pagination.offset,
+    limit: pagination.limit,
+  };
+
+  const query = buildQueryString({ ...filters, ...mergedPagination });
   return apiClient.request<PaginatedResponse<TaskSummaryView>>({
     path: `/api/task/list${query ? `?${query}` : ''}`,
     method: 'GET',
@@ -127,6 +135,33 @@ const updateStatus = async (taskId: string, status: TaskStatus): Promise<TaskVie
   return response.data;
 };
 
+const beautifyDescription = async (payload: { title?: string; description: string }): Promise<string> => {
+  const response = await apiClient.request<SingleResponse<TaskBeautifyResponse>>({
+    path: '/api/task/beautify-text',
+    method: 'POST',
+    body: {
+      title: payload.title ?? null,
+      description: payload.description,
+    },
+  });
+
+  return response.data.suggestion;
+};
+
+const getDashboardStats = async (): Promise<{
+  my_tasks_total: number;
+  my_tasks_in_progress: number;
+  my_tasks_done_total: number;
+}> => {
+  const response = await apiClient.request<
+    SingleResponse<{ my_tasks_total: number; my_tasks_in_progress: number; my_tasks_done_total: number }>
+  >({
+    path: '/api/task/dashboard-stats',
+    method: 'GET',
+  });
+  return response.data;
+};
+
 export const taskService = {
   list,
   getById,
@@ -139,4 +174,6 @@ export const taskService = {
   clearAssignees,
   moveToProject,
   updateStatus,
+  beautifyDescription,
+  getDashboardStats,
 };

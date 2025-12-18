@@ -4,7 +4,7 @@ import { IonText, IonInput, IonButton, IonItem, IonLabel, IonList, IonSpinner } 
 
 const ResetPasswordRequestPage: React.FC = () => {
   const history = useHistory();
-  const [userId, setUserId] = useState('');
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -12,14 +12,14 @@ const ResetPasswordRequestPage: React.FC = () => {
     event.preventDefault();
     setError(null);
 
-    if (!userId) {
-      setError('Bitte geben Sie Ihre Benutzer-ID ein');
+    if (!email) {
+      setError('Bitte geben Sie Ihre E-Mail-Adresse ein');
       return;
     }
 
     try {
       setLoading(true);
-      history.push(`/auth/reset-password/verify-email?userId=${userId}`);
+      history.push(`/auth/reset-password/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err) {
       setError('Ein Fehler ist aufgetreten');
     } finally {
@@ -45,27 +45,27 @@ const ResetPasswordRequestPage: React.FC = () => {
         fontSize: '14px',
         color: 'var(--ion-color-step-600)'
       }}>
-        Geben Sie Ihre Benutzer-ID ein
+        Geben Sie Ihre E-Mail-Adresse ein
       </p>
 
       <form onSubmit={handleSubmit}>
         <IonList lines="none" style={{ background: 'transparent' }}>
           <IonItem lines="none" style={{ '--background': 'transparent', marginBottom: '16px' }}>
             <IonLabel position="stacked" style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>
-              Benutzer-ID
+              E-Mail-Adresse
             </IonLabel>
             <IonInput
-              type="text"
-              value={userId}
-              onIonInput={(e) => setUserId(e.detail.value!)}
-              placeholder="Ihre Benutzer-ID"
+              type="email"
+              value={email}
+              onIonInput={(e) => setEmail(e.detail.value!)}
+              placeholder="ihre.email@example.com"
               required
               style={{ 
                 '--background': '#f5f5f5',
                 '--padding-start': '12px',
                 '--padding-end': '12px',
-                'border-radius': '8px',
-                'marginTop': '4px'
+                borderRadius: '8px',
+                marginTop: '4px'
               }}
             />
           </IonItem>
