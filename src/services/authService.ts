@@ -1,5 +1,5 @@
 import { sessionStore, StoredSession, TokenPair, isAccessTokenExpired } from './sessionStore';
-import { API_BASE_URL } from '../config/apiConfig';
+import { apiClient } from './apiClient';
 
 type LoginPayload = { email: string; password: string };
 
@@ -11,17 +11,7 @@ type AuthResponse = {
   };
 };
 
-const API_BASE = `${API_BASE_URL}/auth`;
-
 let refreshPromise: Promise<StoredSession | null> | null = null;
-
-const parseAuthResponse = (response: Response): Promise<AuthResponse> => {
-  const contentType = response.headers.get('content-type') || '';
-  if (contentType.includes('application/json')) {
-    return response.json() as Promise<AuthResponse>;
-  }
-  return Promise.resolve({});
-};
 
 const buildSession = (payload: AuthResponse['data']): StoredSession | null => {
   if (!payload?.tokens?.access_token || !payload?.tokens?.refresh_token) {
@@ -36,24 +26,15 @@ const buildSession = (payload: AuthResponse['data']): StoredSession | null => {
   };
 };
 
-const postJson = async (path: string, body: unknown): Promise<Response> => {
-  return fetch(path, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-};
-
 const login = async (payload: LoginPayload): Promise<StoredSession> => {
-  const res = await postJson(`${API_BASE}/login`, payload);
-  if (!res.ok) {
-    throw new Error(`Login failed with status ${res.status}`);
-  }
+  const response = await apiClient.request<AuthResponse>({
+    path: '/auth/login',
+    method: 'POST',
+    body: payload,
+    skipAuth: true,
+  });
 
-  const json = await parseAuthResponse(res);
-  const session = buildSession(json.data);
+  const session = buildSession(response.data);
 
   if (!session) {
     throw new Error('Login response missing tokens.');
@@ -70,19 +51,22 @@ const refresh = async (refreshToken: string): Promise<StoredSession | null> => {
 
   refreshPromise = (async () => {
     try {
-      const res = await postJson(`${API_BASE}/refresh`, { refresh_token: refreshToken });
-      if (!res.ok) {
-        return null;
-      }
+      const response = await apiClient.request<AuthResponse>({
+        path: '/auth/refresh',
+        method: 'POST',
+        body: { refresh_token: refreshToken },
+        skipAuth: true,
+      });
 
-      const json = await parseAuthResponse(res);
-      const session = buildSession(json.data);
+      const session = buildSession(response.data);
       if (!session) {
         return null;
       }
 
       sessionStore.write(session);
       return session;
+    } catch {
+      return null;
     } finally {
       refreshPromise = null;
     }
@@ -102,7 +86,12 @@ const logout = async (): Promise<void> => {
   }
 
   try {
-    await postJson(`${API_BASE}/logout`, { refresh_token: refreshToken });
+    await apiClient.request({
+      path: '/auth/logout',
+      method: 'POST',
+      body: { refresh_token: refreshToken },
+      skipAuth: true,
+    });
   } catch (error) {
     console.warn('Logout request failed', error);
   }
@@ -143,25 +132,14 @@ const ensureValidAccessToken = async (): Promise<StoredSession | null> => {
 };
 
 const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
-  const session = sessionStore.read();
-  const accessToken = session?.tokens?.access_token;
-
-  const response = await fetch(`${API_BASE}/change-password`, {
+  await apiClient.request({
+    path: '/auth/change-password',
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
-    },
-    body: JSON.stringify({
+    body: {
       current_password: currentPassword,
       new_password: newPassword,
-    }),
+    },
   });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || `Password change failed with status ${response.status}`);
-  }
 };
 
 export const authService = {

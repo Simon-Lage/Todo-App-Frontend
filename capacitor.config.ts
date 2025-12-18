@@ -18,6 +18,11 @@ if (process.env.NODE_ENV === 'development' && process.env.VITE_DEV_SERVER_URL) {
     ...config.server,
     url: process.env.VITE_DEV_SERVER_URL,
   };
+} else if (process.env.NODE_ENV === 'production') {
+  config.server = {
+    ...config.server,
+    url: process.env.VITE_API_BASE_URL || 'https://194.35.120.105:8443',
+  };
 }
 
 export default config;

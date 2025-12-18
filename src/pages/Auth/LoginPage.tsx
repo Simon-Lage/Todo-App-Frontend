@@ -13,6 +13,7 @@ import {
 import { eyeOutline, eyeOffOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { useAuthSession } from '../../routing/useAuthSession';
+import { toastService } from '../../services/toastService';
 
 const LoginPage: React.FC = () => {
   const history = useHistory();
@@ -41,9 +42,12 @@ const LoginPage: React.FC = () => {
 
     try {
       await login(email, password);
+      toastService.success('Erfolgreich angemeldet');
       history.replace('/app/dashboard');
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Anmeldung fehlgeschlagen.');
+      const errorMessage = err instanceof Error ? err.message : 'Anmeldung fehlgeschlagen.';
+      setFormError(errorMessage);
+      toastService.error(errorMessage);
     } finally {
       setSubmitting(false);
     }
