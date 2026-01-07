@@ -4,6 +4,7 @@ import { logService } from '../../../../services/logService';
 import PaginationControls from '../../../../components/PaginationControls';
 import type { LogView } from '../../../../types/api';
 import { getErrorMessage } from '../../../../utils/errorUtils';
+import { formatLogAction } from '../../../../utils/logUtils';
 
 const AdminLogsPage: React.FC = () => {
   const [logs, setLogs] = useState<LogView[]>([]);
@@ -102,7 +103,7 @@ const AdminLogsPage: React.FC = () => {
             </div>
             {logs.map((log) => (
               <div className="admin-table-row" key={log.id}>
-                <span>{log.action}</span>
+                <span>{formatLogAction(log.action)}</span>
                 <span>{formatDateTime(log.performed_at)}</span>
                 <span>
                   <IonButton size="small" routerLink={`/app/admin/logs/${log.id}`} fill="outline">

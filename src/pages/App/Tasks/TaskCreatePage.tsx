@@ -25,6 +25,7 @@ import TaskDescriptionEnhancer from '../../../components/TaskDescriptionEnhancer
 import { toastService } from '../../../services/toastService';
 import { imageService } from '../../../services/imageService';
 import { getErrorMessage } from '../../../utils/errorUtils';
+import { useAuthSession } from '../../../routing/useAuthSession';
 
 const TaskCreatePage: React.FC = () => {
   const history = useHistory();
@@ -39,6 +40,8 @@ const TaskCreatePage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const { authSession } = useAuthSession();
+  const currentUserId = (authSession.user as { id?: string } | null)?.id ?? null;
 
   useEffect(() => {
     const loadProjects = async () => {
@@ -116,6 +119,10 @@ const TaskCreatePage: React.FC = () => {
       setSaving(false);
     }
   };
+
+  const selectedProject = projects.find((project) => project.id === projectId) || null;
+  const isProjectTeamLead = selectedProject?.teamlead_user_ids?.includes(currentUserId ?? '') ?? false;
+  const creationAllowed = Boolean(projectId && isProjectTeamLead);
 
   if (loading) {
     return (
@@ -244,7 +251,8 @@ const TaskCreatePage: React.FC = () => {
         <IonButton
           expand="block"
           onClick={handleSubmit}
-          disabled={saving}
+          disabled={saving || !creationAllowed}
+          title={!creationAllowed ? 'Nur Projektleitungen können hier Aufgaben erstellen.' : undefined}
           className="app-button"
         >
           <IonIcon slot="start" icon={saveOutline} />

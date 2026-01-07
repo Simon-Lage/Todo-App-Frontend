@@ -1,8 +1,10 @@
 import { apiClient } from './apiClient';
+import { userService } from './userService';
 import type { PermissionMap, PermissionKey, SingleResponse } from '../types/api';
 
 let cachedPermissions: PermissionMap | null = null;
 let cachedCatalog: { items: PermissionKey[]; roles: string[] } | null = null;
+let cachedUserRoles: string[] | null = null;
 
 const getCatalog = async (): Promise<{ items: PermissionKey[]; roles: string[] }> => {
   if (cachedCatalog) {
@@ -48,13 +50,23 @@ const hasAny = async (permissions: PermissionKey[]): Promise<boolean> => {
 };
 
 const getAssignedRoles = async (): Promise<string[]> => {
-  const catalog = await getCatalog();
-  return catalog.roles;
+  if (cachedUserRoles) {
+    return cachedUserRoles;
+  }
+
+  const { user } = await userService.getCurrentUser();
+  const roles = (user?.roles ?? [])
+    .map((role) => role.name || role.id)
+    .filter((name): name is string => Boolean(name));
+
+  cachedUserRoles = roles;
+  return roles;
 };
 
 const clearCache = (): void => {
   cachedPermissions = null;
   cachedCatalog = null;
+  cachedUserRoles = null;
 };
 
 export const permissionService = {

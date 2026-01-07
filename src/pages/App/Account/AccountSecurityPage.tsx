@@ -55,8 +55,8 @@ const AccountSecurityPage: React.FC = () => {
       return;
     }
 
-    if (newPassword.length < 8) {
-      toastService.error('Das neue Passwort muss mindestens 8 Zeichen lang sein');
+    if (newPassword.length < 12) {
+      toastService.error('Das neue Passwort muss mindestens 12 Zeichen lang sein');
       return;
     }
 
@@ -179,7 +179,7 @@ const AccountSecurityPage: React.FC = () => {
                   type={showNewPassword ? 'text' : 'password'}
                   value={newPassword}
                   onIonInput={(e) => setNewPassword(e.detail.value!)}
-                  placeholder="Neues Passwort (min. 8 Zeichen)"
+                  placeholder="Neues Passwort (min. 12 Zeichen)"
                   className="app-form-input"
                   required
                   style={{ paddingRight: '48px' }}

@@ -5,6 +5,7 @@ import { roleService } from '../../../../services/roleService';
 import type { RoleView } from '../../../../types/api';
 import { getRoleLabel } from '../../../../config/roleLabels';
 import { getErrorMessage } from '../../../../utils/errorUtils';
+import CopyButton from '../../../../components/CopyButton';
 
 const AdminRoleListPage: React.FC = () => {
   const [roles, setRoles] = useState<RoleView[]>([]);
@@ -70,7 +71,10 @@ const AdminRoleListPage: React.FC = () => {
               >
               <IonLabel>
                 <h3>{getRoleLabel(role.name) ?? role.id}</h3>
-                <p style={{ fontSize: '12px', color: 'var(--ion-color-medium)' }}>{role.id}</p>
+                <p style={{ fontSize: '12px', color: 'var(--ion-color-medium)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span>{role.id}</span>
+                  <CopyButton value={role.id} label="Rollen-ID" size="small" />
+                </p>
               </IonLabel>
             </IonItem>
           ))}

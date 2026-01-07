@@ -57,6 +57,7 @@ const ProjectEditPage: React.FC = () => {
         name,
         description: description || undefined,
       });
+      toastService.success('Projekt gespeichert');
       history.push(`/app/project/${projectId}`);
     } catch (err) {
       toastService.error('Fehler beim Speichern des Projekts');

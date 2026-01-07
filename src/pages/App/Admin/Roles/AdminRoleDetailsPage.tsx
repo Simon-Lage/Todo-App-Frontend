@@ -6,6 +6,9 @@ import { roleService } from '../../../../services/roleService';
 import type { RoleView } from '../../../../types/api';
 import { getRoleLabel } from '../../../../config/roleLabels';
 import { getErrorMessage } from '../../../../utils/errorUtils';
+import CopyButton from '../../../../components/CopyButton';
+import PermissionLabel from '../../../../components/PermissionLabel';
+import { getPermissionLabel } from '../../../../config/permissionLabels';
 
 const AdminRoleDetailsPage: React.FC = () => {
   const { roleId } = useParams<{ roleId: string }>();
@@ -64,9 +67,23 @@ const AdminRoleDetailsPage: React.FC = () => {
         </IonCardHeader>
         <IonCardContent>
           <IonList lines="none" style={{ background: 'transparent' }}>
+            <IonItem className="app-form-item">
+              <IonLabel>
+                <h3>Rollen-ID</h3>
+                <p style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span>{role.id}</span>
+                  <CopyButton value={role.id} label="Rollen-ID" />
+                </p>
+              </IonLabel>
+            </IonItem>
+          </IonList>
+
+          <IonList lines="none" style={{ background: 'transparent' }}>
             {permissions.map(([permission, value]) => (
               <IonItem key={permission} className="app-form-item">
-                <IonLabel>{permission}</IonLabel>
+                <IonLabel>
+                  <PermissionLabel permissionKey={permission} label={getPermissionLabel(permission)} />
+                </IonLabel>
                 <IonBadge slot="end" color={value ? 'success' : 'medium'}>
                   {value ? 'Aktiv' : 'Inaktiv'}
                 </IonBadge>

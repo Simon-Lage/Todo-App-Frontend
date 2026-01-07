@@ -8,6 +8,7 @@ import type { RoleView, UserListView } from '../../../../types/api';
 import { useAuthSession } from '../../../../routing/useAuthSession';
 import { getRoleLabel } from '../../../../config/roleLabels';
 import { getErrorMessage } from '../../../../utils/errorUtils';
+import { toastService } from '../../../../services/toastService';
 
 const AdminUserListPage: React.FC = () => {
   const { authSession } = useAuthSession();
@@ -76,7 +77,9 @@ const AdminUserListPage: React.FC = () => {
       setTotal(response.total);
     } catch (err) {
       setError('Fehler beim Laden der Benutzer');
-      console.error(getErrorMessage(err));
+      const message = getErrorMessage(err);
+      toastService.error(message);
+      console.error(message);
     } finally {
       setLoading(false);
     }

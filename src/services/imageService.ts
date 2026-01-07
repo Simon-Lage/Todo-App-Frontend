@@ -1,8 +1,15 @@
 import { sessionStore } from './sessionStore';
+import { authService } from './authService';
 import { API_BASE_URL } from '../config/apiConfig';
 import type { ImageView, SingleResponse } from '../types/api';
 
 const API_BASE = API_BASE_URL;
+
+const getAccessToken = async (): Promise<string | null> => {
+  const validSession = await authService.ensureValidAccessToken();
+  const token = validSession?.tokens?.access_token ?? sessionStore.read()?.tokens?.access_token ?? null;
+  return token ?? null;
+};
 
 type UploadParams = {
   file: File;
@@ -28,8 +35,7 @@ const upload = async (params: UploadParams): Promise<ImageView> => {
   if (params.projectId) formData.append('project_id', params.projectId);
   if (params.taskId) formData.append('task_id', params.taskId);
 
-  const session = sessionStore.read();
-  const accessToken = session?.tokens?.access_token;
+  const accessToken = await getAccessToken();
 
   const response = await fetch(`${API_BASE}/image`, {
     method: 'POST',
@@ -69,8 +75,7 @@ const list = async (filter: { userId?: string; projectId?: string; taskId?: stri
   if (filter.projectId) params.append('project_id', filter.projectId);
   if (filter.taskId) params.append('task_id', filter.taskId);
 
-  const session = sessionStore.read();
-  const accessToken = session?.tokens?.access_token;
+  const accessToken = await getAccessToken();
 
   const response = await fetch(`${API_BASE}/image/list?${params.toString()}`, {
     method: 'GET',
@@ -90,8 +95,7 @@ const list = async (filter: { userId?: string; projectId?: string; taskId?: stri
 };
 
 const update = async (imageId: string, payload: UpdateImagePayload): Promise<ImageView> => {
-  const session = sessionStore.read();
-  const accessToken = session?.tokens?.access_token;
+  const accessToken = await getAccessToken();
 
   const response = await fetch(`${API_BASE}/image/${imageId}`, {
     method: 'PATCH',
@@ -111,8 +115,7 @@ const update = async (imageId: string, payload: UpdateImagePayload): Promise<Ima
 };
 
 const deleteImage = async (imageId: string): Promise<void> => {
-  const session = sessionStore.read();
-  const accessToken = session?.tokens?.access_token;
+  const accessToken = await getAccessToken();
 
   const response = await fetch(`${API_BASE}/image/${imageId}`, {
     method: 'DELETE',

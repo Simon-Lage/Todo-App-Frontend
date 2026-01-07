@@ -2,7 +2,6 @@ import { ComponentType, lazy } from "react";
 const AuthLayout = lazy(() => import('./layouts/AuthLayout'));
 const AppShellLayout = lazy(() => import('./layouts/AppShellLayout'));
 const LoginPage = lazy(() => import('./pages/Auth/LoginPage'));
-const ResetPasswordFlowPage = lazy(() => import('./pages/Auth/ResetPassword/ResetPasswordFlowPage'));
 const ResetPasswordRequestPage = lazy(() => import('./pages/Auth/ResetPassword/ResetPasswordRequestPage'));
 const ResetPasswordVerifyEmailPage = lazy(() => import('./pages/Auth/ResetPassword/ResetPasswordVerifyEmailPage'));
 const ResetPasswordConfirmPage = lazy(() => import('./pages/Auth/ResetPassword/ResetPasswordConfirmPage'));
@@ -97,7 +96,6 @@ const routes: RouteDefinition[] = [
       },
       {
         "route": "/reset-password",
-        "pageComponent": ResetPasswordFlowPage,
         "pages": [
           {
             "route": "/request",
@@ -367,7 +365,7 @@ const routes: RouteDefinition[] = [
                 "pageComponent": AdminUserCreatePage,
               },
               {
-                "route": "/:userId",
+            "route": "/:userId([0-9a-fA-F-]{36})",
                 "pageComponent": AdminUserDetailsPage,
                 "pages": [
                   {

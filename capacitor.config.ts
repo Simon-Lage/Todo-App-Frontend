@@ -5,11 +5,11 @@ const config: CapacitorConfig = {
   appName: 'Todo-App',
   webDir: 'dist',
   server: {
-    androidScheme: 'https',
-    cleartext: false,
+    androidScheme: 'http',
+    cleartext: true,
   },
   android: {
-    allowMixedContent: false,
+    allowMixedContent: true,
   },
 };
 

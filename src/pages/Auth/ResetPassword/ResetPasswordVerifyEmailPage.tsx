@@ -21,8 +21,7 @@ const ResetPasswordVerifyEmailPage: React.FC = () => {
       setEmailFromUrl(decodedEmail);
       setEmail(decodedEmail);
     } else {
-      setError('Keine E-Mail-Adresse angegeben');
-      history.push('/auth/reset-password/request');
+      history.replace('/auth/reset-password/request');
     }
   }, [location, history]);
 
@@ -37,10 +36,12 @@ const ResetPasswordVerifyEmailPage: React.FC = () => {
 
     try {
       setLoading(true);
+      const normalizedEmail = email.trim().toLowerCase();
+
       const response = await apiClient.request<{ data: { user_id: string } }>({
         path: '/api/user/find-id-by-email',
         method: 'POST',
-        body: { email },
+        body: { email: normalizedEmail },
         skipAuth: true,
       });
 
@@ -52,7 +53,7 @@ const ResetPasswordVerifyEmailPage: React.FC = () => {
       await apiClient.request({
         path: `/api/user/verify-email-for-password-reset/${userId}`,
         method: 'POST',
-        body: { email },
+        body: { email: normalizedEmail },
         skipAuth: true,
       });
 

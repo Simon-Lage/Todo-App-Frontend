@@ -7,6 +7,8 @@ import type { UserView } from '../../../../types/api';
 import { useAuthSession } from '../../../../routing/useAuthSession';
 import { getRoleLabel } from '../../../../config/roleLabels';
 import { getErrorMessage } from '../../../../utils/errorUtils';
+import { toastService } from '../../../../services/toastService';
+import CopyButton from '../../../../components/CopyButton';
 
 const AdminUserDetailsPage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -47,8 +49,10 @@ const AdminUserDetailsPage: React.FC = () => {
         const userData = await userService.getById(userId);
         setUser(userData);
       } catch (err) {
+        const message = getErrorMessage(err);
         setError('Fehler beim Laden des Benutzers');
-        console.error(getErrorMessage(err));
+        toastService.error(message);
+        console.error(message);
       } finally {
         setLoading(false);
       }
@@ -92,7 +96,10 @@ const AdminUserDetailsPage: React.FC = () => {
             <IonItem className="app-form-item">
               <IonLabel>
                 <h3>Benutzer-ID</h3>
-                <p>{user.id}</p>
+                <p style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span>{user.id}</span>
+                  <CopyButton value={user.id} label="Benutzer-ID" />
+                </p>
               </IonLabel>
             </IonItem>
 
@@ -107,19 +114,18 @@ const AdminUserDetailsPage: React.FC = () => {
               <IonLabel>
                 <h3>Rollen</h3>
                 <p>
-	                  {user.roles.length > 0 ? (
-	                    user.roles.map((role) => (
-	                      <IonChip
-	                        key={role.id}
-	                        className="app-chip"
-	                        color="secondary"
-	                        onClick={() => history.push(`/app/admin/roles/${role.id}`)}
-	                        style={{ cursor: 'pointer' }}
-	                      >
-	                        {getRoleLabel(role.name) ?? role.id}
-	                      </IonChip>
-	                    ))
-	                  ) : (
+                  {user.roles.length > 0 ? (
+                    user.roles.map((role) => (
+                      <IonChip
+                        key={role.id}
+                        className="app-chip"
+                        color="secondary"
+                        style={{ cursor: 'default' }}
+                      >
+                        {getRoleLabel(role.name) ?? role.id}
+                      </IonChip>
+                    ))
+                  ) : (
                     '-'
                   )}
                 </p>

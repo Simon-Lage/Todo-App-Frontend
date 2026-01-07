@@ -116,22 +116,18 @@ const TaskDetailsPage: React.FC = () => {
     loadTask();
   }, [taskId]);
 
-	  const handleStatusChange = async (newStatus: TaskStatus) => {
-	    if (!canChangeStatus) return;
-	    if (!task) return;
-      if ((newStatus === 'done' || newStatus === 'cancelled') && !canFinalizeStatus) {
-        toastService.error('Nur Projektleitungen können eine Aufgabe als erledigt/abgebrochen markieren.');
-        return;
-      }
-	
-	    try {
-	      const updated = await taskService.updateStatus(task.id, newStatus);
-	      setTask(updated);
-	    } catch (err) {
-        toastService.error('Status konnte nicht geändert werden.');
-	      console.error('Fehler beim Ändern des Status', getErrorMessage(err));
-	    }
-	  };
+  const handleStatusChange = async (newStatus: TaskStatus) => {
+    if (!canChangeStatus) return;
+    if (!task) return;
+
+    try {
+      const updated = await taskService.updateStatus(task.id, newStatus);
+      setTask(updated);
+    } catch (err) {
+      toastService.error('Status konnte nicht geändert werden.');
+      console.error('Fehler beim Ändern des Status', getErrorMessage(err));
+    }
+  };
 
   const handleDelete = async () => {
     if (!canDelete) return;
@@ -202,8 +198,7 @@ const TaskDetailsPage: React.FC = () => {
 	    return Boolean(canManageAssignments && permissions['perm_can_read_user']);
 	  }, [authSession.permissions, canManageAssignments]);
 
-    const canFinalizeStatus = canManageAssignments;
-	  const canChangeStatus = canEdit;
+  const canChangeStatus = canEdit;
 
   const updateUserSearch = (term: string, users: UserListView[]) => {
     const normalizedTerm = term.trim().toLowerCase();
@@ -511,13 +506,15 @@ const TaskDetailsPage: React.FC = () => {
 	              value={task.status}
 	              onIonChange={(e) => handleStatusChange(e.detail.value as TaskStatus)}
 	              interface="action-sheet"
+	              okText="Fertig"
+	              cancelText="Abbrechen"
 	              style={{ width: '100%', '--padding-start': '16px', background: 'white', borderRadius: '12px', border: '1px solid var(--ion-color-step-200)' }}
 	            >
 	              <IonSelectOption value="open">Offen</IonSelectOption>
 	              <IonSelectOption value="in_progress">In Bearbeitung</IonSelectOption>
 	              <IonSelectOption value="review">Review</IonSelectOption>
-	              <IonSelectOption value="done" disabled={!canFinalizeStatus}>Erledigt</IonSelectOption>
-	              <IonSelectOption value="cancelled" disabled={!canFinalizeStatus}>Abgebrochen</IonSelectOption>
+	              <IonSelectOption value="done">Erledigt</IonSelectOption>
+	              <IonSelectOption value="cancelled">Abgebrochen</IonSelectOption>
 	            </IonSelect>
           </IonCardContent>
         </IonCard>

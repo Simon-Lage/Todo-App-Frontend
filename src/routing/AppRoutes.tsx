@@ -104,7 +104,8 @@ const registeredRoutes = flattenRoutes(routes);
 const getDefaultAppRedirect = (auth: AuthSession): string => {
   const roles = auth.roles ?? [];
   if (roles.includes('admin')) return '/app/admin';
-  if (roles.includes('teamlead') || Boolean(auth.permissions?.['perm_can_read_all_tasks'])) return '/app/lead/tasks';
+  if (roles.includes('teamlead')) return '/app/lead/tasks';
+  if (auth.permissions?.['perm_can_read_all_tasks']) return '/app/lead/tasks';
   return '/app/dashboard';
 };
 

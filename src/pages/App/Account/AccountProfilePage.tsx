@@ -19,9 +19,11 @@ import { imageService } from '../../../services/imageService';
 import type { UserView } from '../../../types/api';
 import { useAuthSession } from '../../../routing/useAuthSession';
 import { sessionStore } from '../../../services/sessionStore';
+import { authService } from '../../../services/authService';
 import { getRoleLabel } from '../../../config/roleLabels';
 import { getErrorMessage } from '../../../utils/errorUtils';
 import { toastService } from '../../../services/toastService';
+import { API_BASE_URL } from '../../../config/apiConfig';
 
 const AccountProfilePage: React.FC = () => {
   const history = useHistory();
@@ -43,7 +45,9 @@ const AccountProfilePage: React.FC = () => {
         setAvatarUrl(null);
       } catch (err) {
         setError('Fehler beim Laden des Profils');
-        console.error(getErrorMessage(err));
+        const message = getErrorMessage(err);
+        toastService.error(message);
+        console.error(message);
       } finally {
         setLoading(false);
       }
@@ -62,14 +66,15 @@ const AccountProfilePage: React.FC = () => {
         return;
       }
 
-      const token = sessionStore.read()?.tokens?.access_token;
+      const validSession = await authService.ensureValidAccessToken();
+      const token = validSession?.tokens?.access_token;
       if (!token) {
         setAvatarUrl(null);
         return;
       }
 
       try {
-        const res = await fetch(`/api/image/${imageId}`, {
+        const res = await fetch(`${API_BASE_URL}/image/${imageId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -86,8 +91,10 @@ const AccountProfilePage: React.FC = () => {
             const { user: refreshed } = await userService.getCurrentUser();
             if (refreshed.profile_image_id && refreshed.profile_image_id !== imageId) {
               setUser(refreshed);
-              const retry = await fetch(`/api/image/${refreshed.profile_image_id}`, {
-                headers: { Authorization: `Bearer ${token}` },
+              const retrySession = await authService.ensureValidAccessToken();
+              const retryToken = retrySession?.tokens?.access_token ?? token;
+              const retry = await fetch(`${API_BASE_URL}/image/${refreshed.profile_image_id}`, {
+                headers: { Authorization: `Bearer ${retryToken}` },
               });
               if (retry.ok) {
                 const blob = await retry.blob();

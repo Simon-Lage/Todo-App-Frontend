@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useHistory } from 'react-router-dom';
-import { IonContent, IonInput, IonButton, IonItem, IonLabel, IonSpinner, IonToggle, IonList, IonCheckbox, IonIcon, IonCard, IonCardHeader, IonCardTitle, IonCardContent } from '@ionic/react';
+import { IonContent, IonInput, IonButton, IonItem, IonLabel, IonSpinner, IonToggle, IonList, IonSelect, IonSelectOption, IonIcon, IonCard, IonCardHeader, IonCardTitle, IonCardContent } from '@ionic/react';
 import { saveOutline, closeOutline } from 'ionicons/icons';
 import { userService } from '../../../../services/userService';
 import { roleService } from '../../../../services/roleService';
@@ -18,12 +18,18 @@ const AdminUserEditPage: React.FC = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [active, setActive] = useState(true);
-  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [selectedRoleId, setSelectedRoleId] = useState<string>('');
   const [availableRoles, setAvailableRoles] = useState<RoleView[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editForbidden, setEditForbidden] = useState(false);
+  const [initialState, setInitialState] = useState<{
+    name: string;
+    email: string;
+    active: boolean;
+    roleId: string;
+  } | null>(null);
   const currentUserId = (authSession.user as { id?: string } | null)?.id ?? null;
   const isAdminAccount = (value: UserView): boolean =>
     value.roles.some((role) => (role.name ?? '').toLowerCase() === 'admin');
@@ -50,7 +56,14 @@ const AdminUserEditPage: React.FC = () => {
         setEmail(userData.email);
         setActive(userData.active);
         setAvailableRoles(rolesResponse.items);
-        setSelectedRoles(userRoles.map(r => r.id));
+        const initialRole = userRoles[0]?.id ?? '';
+        setSelectedRoleId(initialRole);
+        setInitialState({
+          name: userData.name,
+          email: userData.email,
+          active: userData.active,
+          roleId: initialRole,
+        });
       } catch (err) {
         setError('Fehler beim Laden der Daten');
         console.error(getErrorMessage(err));
@@ -62,17 +75,14 @@ const AdminUserEditPage: React.FC = () => {
     loadData();
   }, [userId]);
 
-  const handleRoleToggle = (roleId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedRoles([...selectedRoles, roleId]);
-    } else {
-      setSelectedRoles(selectedRoles.filter(id => id !== roleId));
-    }
-  };
-
   const handleSubmit = async () => {
     if (!name || !email) {
       toastService.error('Name und E-Mail sind Pflichtfelder');
+      return;
+    }
+
+    if (!selectedRoleId) {
+      toastService.error('Bitte genau eine Rolle auswählen');
       return;
     }
 
@@ -82,7 +92,7 @@ const AdminUserEditPage: React.FC = () => {
         name,
         email,
         active,
-        roles: selectedRoles,
+        roles: [selectedRoleId],
       });
       history.push(`/app/admin/users/${userId}`);
     } catch (err) {
@@ -92,6 +102,15 @@ const AdminUserEditPage: React.FC = () => {
       setSaving(false);
     }
   };
+
+  const hasChanges = initialState
+    ? (
+      name !== initialState.name ||
+      email !== initialState.email ||
+      active !== initialState.active ||
+      selectedRoleId !== initialState.roleId
+    )
+    : true;
 
   if (loading) {
     return (
@@ -184,16 +203,23 @@ const AdminUserEditPage: React.FC = () => {
         </IonCardHeader>
         <IonCardContent>
           <IonList lines="none" style={{ background: 'transparent' }}>
-            {availableRoles.map((role) => (
-              <IonItem key={role.id} className="app-form-item">
-                <IonLabel>{getRoleLabel(role.name) ?? role.id}</IonLabel>
-                <IonCheckbox
-                  slot="end"
-                  checked={selectedRoles.includes(role.id)}
-                  onIonChange={(e) => handleRoleToggle(role.id, e.detail.checked)}
-                />
-              </IonItem>
-            ))}
+            <IonItem className="app-form-item">
+              <IonLabel position="stacked" className="app-form-label">Rolle *</IonLabel>
+              <IonSelect
+                value={selectedRoleId}
+                placeholder="Rolle auswählen"
+                interface="action-sheet"
+                okText="Fertig"
+                cancelText="Abbrechen"
+                onIonChange={(e) => setSelectedRoleId(e.detail.value as string)}
+              >
+                {availableRoles.map((role) => (
+                  <IonSelectOption key={role.id} value={role.id}>
+                    {getRoleLabel(role.name) ?? role.id}
+                  </IonSelectOption>
+                ))}
+              </IonSelect>
+            </IonItem>
           </IonList>
         </IonCardContent>
       </IonCard>
@@ -202,7 +228,7 @@ const AdminUserEditPage: React.FC = () => {
         <IonButton
           onClick={handleSubmit}
           expand="block"
-          disabled={saving}
+          disabled={saving || !hasChanges}
           className="app-button"
         >
           <IonIcon slot="start" icon={saveOutline} />

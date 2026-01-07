@@ -5,6 +5,8 @@ import { arrowBackOutline, documentTextOutline } from 'ionicons/icons';
 import { logService } from '../../../../services/logService';
 import type { LogView } from '../../../../types/api';
 import { getErrorMessage } from '../../../../utils/errorUtils';
+import { formatLogAction } from '../../../../utils/logUtils';
+import CopyButton from '../../../../components/CopyButton';
 
 const AdminLogDetailsPage: React.FC = () => {
   const { logId } = useParams<{ logId: string }>();
@@ -65,18 +67,28 @@ const AdminLogDetailsPage: React.FC = () => {
     <IonContent className="app-page-content">
       <div className="page-header">
         <h1 className="page-title">Log-Details</h1>
-        <p className="page-subtitle">{log.action}</p>
+        <p className="page-subtitle">{formatLogAction(log.action)}</p>
       </div>
 
       <IonCard className="app-card">
         <IonCardHeader>
           <IonCardTitle>
             <IonIcon icon={documentTextOutline} style={{ marginRight: '8px' }} />
-            {log.action}
+            {formatLogAction(log.action)}
           </IonCardTitle>
         </IonCardHeader>
         <IonCardContent>
           <IonList lines="none" style={{ background: 'transparent' }}>
+            <IonItem className="app-form-item">
+              <IonLabel>
+                <h3>Log-ID</h3>
+                <p style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span>{log.id}</span>
+                  <CopyButton value={log.id} label="Log-ID" />
+                </p>
+              </IonLabel>
+            </IonItem>
+
             <IonItem className="app-form-item">
               <IonLabel>
                 <h3>Zeitpunkt</h3>
@@ -88,7 +100,10 @@ const AdminLogDetailsPage: React.FC = () => {
               <IonItem className="app-form-item">
                 <IonLabel>
                   <h3>Benutzer-ID</h3>
-                  <p>{log.performed_by_user_id}</p>
+                  <p style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span>{log.performed_by_user_id}</span>
+                    <CopyButton value={log.performed_by_user_id} label="Benutzer-ID" />
+                  </p>
                 </IonLabel>
               </IonItem>
             )}

@@ -1,11 +1,21 @@
 import { sessionStore } from './sessionStore';
+import { authService } from './authService';
 import { API_BASE_URL } from '../config/apiConfig';
 
 const cache = new Map<string, string>();
 const inflight = new Map<string, Promise<string | null>>();
 
+const resolveAccessToken = async (): Promise<string | null> => {
+  const validSession = await authService.ensureValidAccessToken();
+  if (validSession?.tokens?.access_token) {
+    return validSession.tokens.access_token;
+  }
+
+  return sessionStore.read()?.tokens?.access_token ?? null;
+};
+
 const fetchObjectUrl = async (imageId: string): Promise<string | null> => {
-  const accessToken = sessionStore.read()?.tokens?.access_token;
+  const accessToken = await resolveAccessToken();
   if (!accessToken) return null;
 
   try {

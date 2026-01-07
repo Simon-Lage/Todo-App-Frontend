@@ -31,6 +31,7 @@ import { sessionStore } from '../services/sessionStore';
 import { userService } from '../services/userService';
 import { authService } from '../services/authService';
 import { UserView } from '../types/api';
+import { API_BASE_URL } from '../config/apiConfig';
 
 type AppShellLayoutProps = {
   children?: ReactNode;
@@ -135,14 +136,15 @@ const AppShellLayout: React.FC<AppShellLayoutProps> = ({ children }) => {
         return;
       }
 
-      const token = sessionStore.read()?.tokens?.access_token;
+      const validSession = await authService.ensureValidAccessToken();
+      const token = validSession?.tokens?.access_token;
       if (!token) {
         setAvatarUrl(null);
         return;
       }
 
       try {
-        const res = await fetch(`/api/image/${imageId}`, {
+        const res = await fetch(`${API_BASE_URL}/image/${imageId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
@@ -157,8 +159,10 @@ const AppShellLayout: React.FC<AppShellLayoutProps> = ({ children }) => {
           const fresh = await refreshProfile();
           const freshImageId = (fresh as UserView | null)?.profile_image_id;
           if (freshImageId && freshImageId !== imageId) {
-            const retry = await fetch(`/api/image/${freshImageId}`, {
-              headers: { Authorization: `Bearer ${token}` },
+            const refreshedSession = await authService.ensureValidAccessToken();
+            const retryToken = refreshedSession?.tokens?.access_token ?? token;
+            const retry = await fetch(`${API_BASE_URL}/image/${freshImageId}`, {
+              headers: { Authorization: `Bearer ${retryToken}` },
             });
             if (retry.ok) {
               const blob = await retry.blob();

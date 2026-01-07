@@ -24,6 +24,7 @@ import type { TaskFilters, TaskStatus, TaskSummaryView, UserListView } from '../
 import { getPriorityColor, getPriorityLabel, getStatusColor, getStatusLabel } from '../../../utils/taskUtils';
 import AssigneeAvatarGroup from '../../../components/AssigneeAvatarGroup';
 import { getErrorMessage } from '../../../utils/errorUtils';
+import { toastService } from '../../../services/toastService';
 
 const USER_LIMIT = 200;
 
@@ -66,7 +67,9 @@ const LeadTeamTasksPage: React.FC = () => {
       );
       setUsers(response.items);
     } catch (err) {
-      console.error(getErrorMessage(err));
+      const message = getErrorMessage(err);
+      toastService.error('Mitarbeiter konnten nicht geladen werden.');
+      console.error(message);
       setUsers([]);
     }
   };
@@ -94,8 +97,10 @@ const LeadTeamTasksPage: React.FC = () => {
       setTasks(response.items);
       setTotal(response.total);
     } catch (err) {
+      const message = getErrorMessage(err);
       setError('Fehler beim Laden der Team-Aufgaben');
-      console.error(getErrorMessage(err));
+      toastService.error(message);
+      console.error(message);
     } finally {
       setLoading(false);
     }

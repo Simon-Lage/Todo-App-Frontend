@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { IonItem, IonLabel, IonTextarea, IonButton, IonIcon, IonSpinner, IonToast } from '@ionic/react';
 import { colorWandOutline, checkmarkCircleOutline, closeCircleOutline } from 'ionicons/icons';
 import { taskService } from '../services/taskService';
@@ -15,18 +15,37 @@ const TaskDescriptionEnhancer: React.FC<Props> = ({ title, description, onChange
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showNotProcessable, setShowNotProcessable] = useState(false);
+  const [showLengthHint, setShowLengthHint] = useState(false);
+
+  const MIN_LENGTH = 50;
+  const trimmedDescription = description.trim();
+  const tooShort = trimmedDescription.length < MIN_LENGTH;
+  const remainingChars = Math.max(0, MIN_LENGTH - trimmedDescription.length);
+
+  useEffect(() => {
+    if (!tooShort) {
+      setShowLengthHint(false);
+    }
+  }, [tooShort]);
 
   const handleBeautify = async () => {
-    const trimmed = description.trim();
+    const trimmed = trimmedDescription;
     const trimmedTitle = title.trim();
 
     if (!trimmed) {
       setError('Bitte geben Sie zuerst eine Beschreibung ein.');
+      setShowLengthHint(false);
+      return;
+    }
+
+    if (tooShort) {
+      setShowLengthHint(true);
       return;
     }
 
     setError(null);
     setLoading(true);
+    setShowLengthHint(false);
 
     try {
       const improved = await taskService.beautifyDescription({
@@ -71,8 +90,6 @@ const TaskDescriptionEnhancer: React.FC<Props> = ({ title, description, onChange
     setError(null);
   };
 
-  const tooShort = description.trim().length < 50;
-
   return (
     <IonItem className="app-form-item">
       <IonLabel position="stacked" className="app-form-label">Beschreibung</IonLabel>
@@ -87,6 +104,12 @@ const TaskDescriptionEnhancer: React.FC<Props> = ({ title, description, onChange
                 disabled={disabled}
                 className="app-form-textarea"
                 autoGrow
+                style={{
+                  background: 'var(--ion-color-light)',
+                  border: '1px solid var(--ion-color-step-200)',
+                  borderRadius: '10px',
+                  padding: '8px',
+                }}
               />
             </div>
             <div>
@@ -97,6 +120,12 @@ const TaskDescriptionEnhancer: React.FC<Props> = ({ title, description, onChange
                 disabled={disabled}
                 className="app-form-textarea"
                 autoGrow
+                style={{
+                  background: 'rgba(var(--ion-color-primary-rgb), 0.06)',
+                  border: '1px solid var(--ion-color-primary)',
+                  borderRadius: '10px',
+                  padding: '8px',
+                }}
               />
             </div>
           </div>
@@ -133,13 +162,18 @@ const TaskDescriptionEnhancer: React.FC<Props> = ({ title, description, onChange
             <IonButton
               size="small"
               onClick={handleBeautify}
-              disabled={loading || disabled || tooShort}
+              disabled={loading || disabled}
               title={tooShort ? 'Mindestens 50 Zeichen erforderlich' : undefined}
             >
               <IonIcon slot="start" icon={colorWandOutline} />
               Verschönern
             </IonButton>
             {error && <div className="ai-inline-error">{error}</div>}
+            {showLengthHint && (
+              <div className="ai-inline-hint" style={{ color: 'var(--ion-color-warning)', marginLeft: '12px' }}>
+                Noch {remainingChars} Zeichen bis zur Verschönerung erforderlich.
+              </div>
+            )}
           </div>
         </>
       )}

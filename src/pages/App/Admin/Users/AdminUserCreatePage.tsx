@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { IonContent, IonText, IonInput, IonButton, IonItem, IonLabel, IonSpinner, IonToggle, IonList, IonCheckbox, IonIcon, IonCard, IonCardHeader, IonCardTitle, IonCardContent } from '@ionic/react';
+import { IonContent, IonText, IonInput, IonButton, IonItem, IonLabel, IonSpinner, IonToggle, IonList, IonSelect, IonSelectOption, IonIcon, IonCard, IonCardHeader, IonCardTitle, IonCardContent } from '@ionic/react';
 import { saveOutline, closeOutline } from 'ionicons/icons';
 import { userService } from '../../../../services/userService';
 import { roleService } from '../../../../services/roleService';
@@ -15,7 +15,7 @@ const AdminUserCreatePage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [active, setActive] = useState(true);
-  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [selectedRoleId, setSelectedRoleId] = useState<string>('');
   const [availableRoles, setAvailableRoles] = useState<RoleView[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingRoles, setLoadingRoles] = useState(true);
@@ -36,14 +36,6 @@ const AdminUserCreatePage: React.FC = () => {
     loadRoles();
   }, []);
 
-  const handleRoleToggle = (roleId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedRoles([...selectedRoles, roleId]);
-    } else {
-      setSelectedRoles(selectedRoles.filter(id => id !== roleId));
-    }
-  };
-
   const handleSubmit = async () => {
     if (!name || !email || !password) {
       toastService.error('Name, E-Mail und Passwort sind Pflichtfelder');
@@ -55,6 +47,11 @@ const AdminUserCreatePage: React.FC = () => {
       return;
     }
 
+    if (!selectedRoleId) {
+      toastService.error('Bitte genau eine Rolle auswählen');
+      return;
+    }
+
     try {
       setLoading(true);
       const user = await userService.create({
@@ -62,7 +59,7 @@ const AdminUserCreatePage: React.FC = () => {
         email,
         password,
         active,
-        roles: selectedRoles,
+        roles: [selectedRoleId],
       });
       history.push(`/app/admin/users/${user.id}`);
     } catch (err) {
@@ -142,23 +139,30 @@ const AdminUserCreatePage: React.FC = () => {
         </IonCardContent>
       </IonCard>
 
-      <IonCard className="app-card" style={{ marginTop: '16px' }}>
+          <IonCard className="app-card" style={{ marginTop: '16px' }}>
         <IonCardHeader>
           <IonCardTitle>Rollen</IonCardTitle>
         </IonCardHeader>
         <IonCardContent>
-          <IonList lines="none" style={{ background: 'transparent' }}>
-            {availableRoles.map((role) => (
-              <IonItem key={role.id} className="app-form-item">
-                <IonLabel>{getRoleLabel(role.name) ?? role.id}</IonLabel>
-                <IonCheckbox
-                  slot="end"
-                  checked={selectedRoles.includes(role.id)}
-                  onIonChange={(e) => handleRoleToggle(role.id, e.detail.checked)}
-                />
-              </IonItem>
-            ))}
-          </IonList>
+              <IonList lines="none" style={{ background: 'transparent' }}>
+                <IonItem className="app-form-item">
+                  <IonLabel position="stacked" className="app-form-label">Rolle *</IonLabel>
+                  <IonSelect
+                    value={selectedRoleId}
+                    placeholder="Rolle auswählen"
+                    interface="action-sheet"
+                    okText="Fertig"
+                    cancelText="Abbrechen"
+                    onIonChange={(e) => setSelectedRoleId(e.detail.value as string)}
+                  >
+                    {availableRoles.map((role) => (
+                      <IonSelectOption key={role.id} value={role.id}>
+                        {getRoleLabel(role.name) ?? role.id}
+                      </IonSelectOption>
+                    ))}
+                  </IonSelect>
+                </IonItem>
+              </IonList>
         </IonCardContent>
       </IonCard>
 

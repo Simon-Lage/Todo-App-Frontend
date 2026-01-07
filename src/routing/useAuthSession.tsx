@@ -1,7 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { authService } from '../services/authService';
-import { apiClient } from '../services/apiClient';
 import { sessionStore, StoredSession } from '../services/sessionStore';
+import { userService } from '../services/userService';
+import { roleService } from '../services/roleService';
+import type { UserView } from '../types/api';
 
 export type AuthSession = {
   user: unknown | null;
@@ -42,33 +44,42 @@ const toAuthSession = (session: StoredSession | null): AuthSession => ({
   isAuthenticated: Boolean(session?.tokens?.access_token),
 });
 
-const fetchCurrentUser = async (): Promise<{ user: unknown; permissions: Record<string, boolean> }> => {
-  const response = await apiClient.request<{ data?: { user?: unknown; permissions?: Record<string, boolean> } }>({
-    path: '/api/user',
-    method: 'GET',
-  });
+const extractRoleNames = (user: unknown): string[] => {
+  if (!user || typeof user !== 'object' || !('roles' in user)) {
+    return [];
+  }
 
-  const data = response.data ?? {};
-  return {
-    user: data.user ?? null,
-    permissions: data.permissions ?? {},
-  };
+  const roles = (user as { roles?: Array<{ id?: string; name?: string | null }> }).roles ?? [];
+  return roles
+    .map((role) => (role?.name ?? role?.id ?? '').toString().trim())
+    .filter((value) => value.length > 0);
 };
 
-const fetchRoles = async (): Promise<string[]> => {
-  const permissions = sessionStore.read()?.permissions ?? {};
-  if (!permissions['perm_can_edit_user']) {
+const fetchCurrentUserWithPermissions = async (): Promise<{
+  user: UserView | null;
+  permissions: Record<string, boolean>;
+}> => {
+  const { user, permissions } = await userService.getCurrentUser();
+  if (permissions && Object.keys(permissions).length > 0) {
+    return { user, permissions };
+  }
+
+  const fallbackPermissions = await userService.getPermissions();
+  return { user, permissions: fallbackPermissions };
+};
+
+const fetchUserRoles = async (userId: string | null): Promise<string[]> => {
+  if (!userId) {
     return [];
   }
 
   try {
-    const response = await apiClient.request<{ data?: { roles?: string[] } }>({
-      path: '/api/permission/catalog',
-      method: 'GET',
-    });
-    return response.data?.roles ?? [];
+    const roles = await roleService.getByUser(userId);
+    return roles
+      .map((role) => (role.name ?? role.id ?? '').toString().trim())
+      .filter((value) => value.length > 0);
   } catch (error) {
-    console.warn('Fetching roles failed', error);
+    console.warn('Fetching roles for user failed', error);
     return [];
   }
 };
@@ -106,20 +117,23 @@ const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      const needProfile = !validSession.user || Object.keys(validSession.permissions ?? {}).length === 0;
-      const needRoles = (validSession.roles ?? []).length === 0;
+      const hasPermissions = Object.keys(validSession.permissions ?? {}).length > 0;
+      const hasUser = Boolean(validSession.user);
+      const { user, permissions } = await fetchCurrentUserWithPermissions();
+      const mergedUser = hasUser ? (validSession.user as UserView) : user;
+      const mergedPermissions = hasPermissions ? validSession.permissions : permissions;
+      const roleNamesFromUser = extractRoleNames(mergedUser);
+      const roles =
+        roleNamesFromUser.length > 0
+          ? roleNamesFromUser
+          : await fetchUserRoles((mergedUser as UserView | null)?.id ?? null);
 
-      let nextSession: StoredSession = { ...validSession, roles: validSession.roles ?? [] };
-
-      if (needProfile) {
-        const { user, permissions } = await fetchCurrentUser();
-        nextSession = { ...nextSession, user, permissions };
-      }
-
-      if (needRoles) {
-        const roles = await fetchRoles();
-        nextSession = { ...nextSession, roles };
-      }
+      const nextSession: StoredSession = {
+        ...validSession,
+        user: mergedUser,
+        permissions: mergedPermissions,
+        roles,
+      };
 
       persistAndSet(nextSession);
     } catch (err) {
@@ -141,8 +155,13 @@ const AuthSessionProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setError(null);
       try {
         const nextSession = await authService.login({ email, password });
-        const { user, permissions } = await fetchCurrentUser();
-        const roles = await fetchRoles();
+        const { user, permissions } = await fetchCurrentUserWithPermissions();
+        const roleNamesFromUser = extractRoleNames(user);
+        const roles =
+          roleNamesFromUser.length > 0
+            ? roleNamesFromUser
+            : await fetchUserRoles((user as UserView | null)?.id ?? null);
+
         persistAndSet({ ...nextSession, user, permissions, roles });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Login failed');

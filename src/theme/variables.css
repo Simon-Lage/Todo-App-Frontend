@@ -110,3 +110,7 @@ http://ionicframework.com/docs/theming/ */
     --ion-card-background: #1f242c;
   }
 }
+
+.sc-ion-label-ios-s>p {
+  color: var(--ion-color-step-800);
+}

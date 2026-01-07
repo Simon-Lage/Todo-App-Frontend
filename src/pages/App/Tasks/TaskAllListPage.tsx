@@ -126,6 +126,7 @@ const TaskAllListPage: React.FC = () => {
           value={statusFilter} 
           onIonChange={(e) => setStatusFilter(e.detail.value as string)}
           style={{ marginTop: '12px' }}
+          mode="ios"
         >
           <IonSegmentButton value="open">
             <IonLabel>Offen</IonLabel>
